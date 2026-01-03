@@ -1,0 +1,30 @@
+{
+  "name": "@flo-audio/libflo-audio",
+  "type": "module",
+  "author": "NellowTCS",
+  "description": "The official encoder/decoder for the flo™ audio format",
+  "version": "0.1.1",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flo-audio/flo"
+  },
+  "files": [
+    "libflo_audio_bg.wasm",
+    "libflo_audio.js",
+    "libflo_audio.d.ts"
+  ],
+  "main": "libflo_audio.js",
+  "homepage": "https://github.com/flo-audio/flo",
+  "types": "libflo_audio.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ],
+  "keywords": [
+    "audio",
+    "codec",
+    "wasm",
+    "encoder",
+    "decoder"
+  ]
+}

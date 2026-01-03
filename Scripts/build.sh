@@ -66,6 +66,7 @@ build_wasm() {
     log "Building libflo WASM..."
     cd "$LIBFLO_DIR"
     wasm-pack build --release --target web
+    cp package.json.template pkg/package.json
     mkdir -p ../Demo/pkg-libflo
     cp -r pkg/* ../Demo/pkg-libflo/
     success "libflo WASM build complete: Demo/pkg-libflo/"
@@ -74,6 +75,7 @@ build_wasm() {
     log "Building reflo WASM..."
     cd "$REFLO_DIR"
     wasm-pack build --release --target web --features wasm
+    cp package.json.template pkg/package.json
     mkdir -p ../Demo/pkg-reflo
     cp -r pkg/* ../Demo/pkg-reflo/
     success "reflo WASM build complete: Demo/pkg-reflo/"

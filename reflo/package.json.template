@@ -2,12 +2,12 @@
   "name": "@flo-audio/reflo",
   "version": "0.1.1",
   "description": "WebAssembly audio converter for the flo™ audio format",
-  "main": "flo_convert.js",
-  "types": "flo_convert.d.ts",
+  "main": "reflo.js",
+  "types": "reflo.d.ts",
   "files": [
-    "flo_convert_bg.wasm",
-    "flo_convert.js",
-    "flo_convert.d.ts"
+    "reflo_bg.wasm",
+    "reflo.js",
+    "reflo.d.ts"
   ],
   "keywords": [
     "audio",
@@ -31,6 +31,6 @@
     "url": "https://github.com/flo-audio/flo/issues"
   },
   "sideEffects": [
-    "./flo_convert.js"
+    "./reflo.js"
   ]
 }
