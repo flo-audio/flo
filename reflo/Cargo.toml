@@ -1,6 +1,6 @@
 [package]
 name = "reflo"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Audio format converter for the flo™ audio format. Available as CLI and library with WebAssembly support"
 license = "Apache-2.0"
