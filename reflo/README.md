@@ -1,6 +1,7 @@
 # reflo
 
 Audio format converter for the flo™ audio format.
+Available on crates.io! <https://crates.io/crates/reflo>
 
 ## Features
 

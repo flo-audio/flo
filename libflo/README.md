@@ -1,7 +1,7 @@
 # libflo
 
 A Rust library for encoding and decoding flo™ audio files with WASM support.
-
+Available on crates.io! <https://crates.io/crates/libflo-audio>
 ## Features
 
 - **Dual-mode compression**: Lossless (ALPC) and lossy (MDCT transform)
