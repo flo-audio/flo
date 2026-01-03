@@ -1,6 +1,6 @@
 //! Lossless encoder tests for libflo
 
-use libflo::{encode, info, Encoder};
+use libflo_audio::{encode, info, Encoder};
 
 // ============================================================================
 // Encoder API Tests

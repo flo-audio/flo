@@ -6,8 +6,8 @@
 //! - Network simulation (chunked data arrival)
 //! - Quality verification (streaming vs standard decode)
 
-use libflo::lossy::TransformEncoder;
-use libflo::{Decoder, DecoderState, Encoder, StreamingDecoder};
+use libflo_audio::lossy::TransformEncoder;
+use libflo_audio::{Decoder, DecoderState, Encoder, StreamingDecoder};
 
 #[test]
 fn test_streaming_decoder_basic() {

@@ -1,6 +1,6 @@
 mod encoder_tests {
-    use libflo::lossy::encoder::serialize_sparse;
-    use libflo::{decode, encode_lossy, info, LossyEncoder, QualityPreset};
+    use libflo_audio::lossy::encoder::serialize_sparse;
+    use libflo_audio::{decode, encode_lossy, info, LossyEncoder, QualityPreset};
 
     #[test]
     fn test_sparse_encoding() {
@@ -199,7 +199,7 @@ mod encoder_tests {
             .collect();
 
         // Create metadata
-        let metadata = libflo::create_metadata(
+        let metadata = libflo_audio::create_metadata(
             Some("Test Song".to_string()),
             Some("Test Artist".to_string()),
             Some("Test Album".to_string()),
@@ -222,10 +222,10 @@ mod encoder_tests {
         assert!(!decoded.is_empty());
 
         // Read metadata back
-        let reader = libflo::Reader::new();
+        let reader = libflo_audio::Reader::new();
         let file = reader.read(&flo_data).expect("Failed to read file");
-        let meta =
-            libflo::FloMetadata::from_msgpack(&file.metadata).expect("Failed to parse metadata");
+        let meta = libflo_audio::FloMetadata::from_msgpack(&file.metadata)
+            .expect("Failed to parse metadata");
 
         assert_eq!(meta.title.as_deref(), Some("Test Song"));
         assert_eq!(meta.artist.as_deref(), Some("Test Artist"));

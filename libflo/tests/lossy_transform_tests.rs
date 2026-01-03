@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod transform_tests {
-    use libflo::lossy::{deserialize_frame, TransformDecoder, TransformEncoder};
-    use libflo::Reader;
+    use libflo_audio::lossy::{deserialize_frame, TransformDecoder, TransformEncoder};
+    use libflo_audio::Reader;
 
     #[test]
     fn test_stereo_transform_encode_decode() {
@@ -137,7 +137,7 @@ mod transform_tests {
             .expect("Encoding failed");
 
         // Decode using the main decode function (handles pre-roll correctly)
-        let decoded = libflo::decode(&flo_data).expect("Decoding failed");
+        let decoded = libflo_audio::decode(&flo_data).expect("Decoding failed");
 
         // Trim to original length (decoded may have extra samples)
         let decoded: Vec<f32> = decoded.into_iter().take(original.len()).collect();

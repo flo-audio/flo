@@ -1,7 +1,7 @@
 //! LPC algorithm tests for libflo
 
-use libflo::core::rice;
-use libflo::lossless::lpc::*;
+use libflo_audio::core::rice;
+use libflo_audio::lossless::lpc::*;
 
 // ============================================================================
 // Autocorrelation Tests

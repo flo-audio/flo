@@ -149,7 +149,7 @@ impl StreamingEncoder {
 
         // Header
         output.push(1); // version_major
-        output.push(0); // version_minor
+        output.push(1); // version_minor
         output.extend_from_slice(&0u16.to_le_bytes()); // flags
         output.extend_from_slice(&self.sample_rate.to_le_bytes());
         output.push(self.channels);

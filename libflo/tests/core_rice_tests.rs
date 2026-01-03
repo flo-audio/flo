@@ -1,5 +1,5 @@
 mod rice_tests {
-    use libflo::core::rice::*;
+    use libflo_audio::core::rice::*;
 
     #[test]
     fn test_rice_roundtrip_float() {

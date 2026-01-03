@@ -29,7 +29,7 @@ Download from [GitHub Releases](https://github.com/flo-audio/flo/releases):
 Add to your `Cargo.toml`:
 ```toml
 [dependencies]
-libflo = "0.1"
+libflo-audio = { version = "0.1.1" }
 ```
 
 ### JavaScript (WASM)
@@ -69,7 +69,7 @@ reflo info music.flo
 ### Encode in Rust
 
 ```rust
-use libflo::{Encoder, decode};
+use libflo_audio::{Encoder, decode};
 
 // Create encoder
 let encoder = Encoder::new(44100, 2, 16);

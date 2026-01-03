@@ -1,5 +1,5 @@
 //! Edge case and stability tests for flo™ audio codec
-use libflo::{Decoder, Encoder, Reader};
+use libflo_audio::{Decoder, Encoder, Reader};
 
 // Helper to encode and decode
 fn roundtrip(samples: &[f32], sample_rate: u32, channels: u8, bit_depth: u8) -> Vec<f32> {

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod psychoacoustic_tests {
-    use libflo::lossy::psychoacoustic::*;
+    use libflo_audio::lossy::psychoacoustic::*;
 
     #[test]
     fn test_ath_curve() {

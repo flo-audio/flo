@@ -46,7 +46,7 @@ flo™ (Fast Layered Object) is a chunked audio format supporting both lossless 
 |--------|------|-------|-------------|
 | 0 | 4 | `magic` | `FLO!` (0x464C4F21) |
 | 4 | 1 | `version_major` | Format version (1) |
-| 5 | 1 | `version_minor` | Minor version (0) |
+| 5 | 1 | `version_minor` | Minor version (1) |
 | 6 | 2 | `flags` | Bit flags (see below) |
 | 8 | 4 | `sample_rate` | Hz (44100, 48000, etc.) |
 | 12 | 1 | `channels` | 1=mono, 2=stereo |

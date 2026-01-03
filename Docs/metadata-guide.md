@@ -38,7 +38,7 @@ const floData = encode(samples, 44100, 2, 16, metadata);
 ### Rust
 
 ```rust
-use libflo::{FloMetadata, Encoder};
+use libflo_audio::{FloMetadata, Encoder};
 
 let mut meta = FloMetadata::new();
 meta.title = Some("My Song".to_string());
@@ -348,7 +348,7 @@ const lyrics = get_synced_lyrics(floData);
 ### Rust
 
 ```rust
-use libflo::get_metadata;
+use libflo_audio::get_metadata;
 
 let meta = get_metadata(&flo_data)?;
 

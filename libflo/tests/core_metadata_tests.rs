@@ -1,6 +1,6 @@
 //! Metadata tests for libflo
 
-use libflo::{
+use libflo_audio::{
     AnimatedCover, BpmChange, CollaborationCredit, CoverVariant, CoverVariantType, CreatorNote,
     FloMetadata, KeyChange, LoudnessPoint, Picture, PictureType, RemixChainEntry, SectionMarker,
     SectionType, SyncedLyrics, SyncedLyricsContentType, SyncedLyricsLine, WaveformData,

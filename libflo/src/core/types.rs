@@ -10,7 +10,7 @@ pub const HEADER_SIZE: u64 = 66;
 
 /// format version
 pub const VERSION_MAJOR: u8 = 1;
-pub const VERSION_MINOR: u8 = 0;
+pub const VERSION_MINOR: u8 = 1;
 
 // types
 

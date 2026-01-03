@@ -1,10 +1,10 @@
 [package]
-name = "libflo"
-version = "0.1.0"
+name = "libflo-audio"
+version = "0.1.1"
 edition = "2021"
 authors = ["NellowTCS"]
 description = "The official encoder/decoder for the flo™ audio format"
-keywords = ["audio", "codec", "compression", "wasm", "encoder", "decoder"]
+keywords = ["audio", "codec", "wasm", "encoder", "decoder"]
 readme = "README.md"
 license = "Apache-2.0"
 repository = "https://github.com/flo-audio/flo"

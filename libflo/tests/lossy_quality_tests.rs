@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod quality_tests {
-    use libflo::lossy::QualityPreset;
+    use libflo_audio::lossy::QualityPreset;
 
     #[test]
     fn test_quality_preset_roundtrip() {

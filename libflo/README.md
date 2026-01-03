@@ -46,7 +46,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-libflo = { path = "path/to/libflo" }
+libflo-audio = { version = "0.1.1" }
 ```
 
 ## API Reference
@@ -108,7 +108,7 @@ flo™ stores metadata separately from audio data, enabling **instant** metadata
 ### Rust (Lossless)
 
 ```rust
-use libflo::{Encoder, decode, info};
+use libflo_audio::{Encoder, decode, info};
 
 // Encode audio (lossless)
 let samples: Vec<f32> = vec![0.0; 44100]; // 1 second of silence
@@ -126,7 +126,7 @@ println!("Duration: {} seconds", file_info.duration_secs);
 ### Rust (Lossy)
 
 ```rust
-use libflo::{LossyEncoder, QualityPreset, decode};
+use libflo_audio::{LossyEncoder, QualityPreset, decode};
 
 // Encode with quality preset
 let quality = QualityPreset::High.as_f32(); // 0.55

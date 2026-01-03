@@ -1,5 +1,5 @@
 mod crc32_tests {
-    use libflo::core::crc32::compute;
+    use libflo_audio::core::crc32::compute;
 
     #[test]
     fn test_crc32_empty() {

@@ -65,7 +65,7 @@ types:
       
       - id: version_minor
         type: u1
-        doc: Format minor version (currently 0)
+        doc: Format minor version (currently 1)
       
       - id: flags
         type: u2

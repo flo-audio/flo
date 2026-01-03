@@ -31,7 +31,7 @@ pub use writer::Writer;
 #[wasm_bindgen]
 #[derive(Debug, Clone)]
 pub struct AudioInfo {
-    /// version string like "1.0"
+    /// version string like "1.1"
     #[wasm_bindgen(skip)]
     pub version: String,
     /// Sample rate in Hz
@@ -861,7 +861,7 @@ mod tests {
 
     #[test]
     fn test_version() {
-        assert_eq!(version(), "1.0");
+        assert_eq!(version(), "1.1");
     }
 
     #[test]

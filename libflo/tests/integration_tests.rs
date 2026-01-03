@@ -1,6 +1,6 @@
 //! High-level tests that verify the full encode/decode pipeline works correctly.
 
-use libflo::{decode, encode, info, validate, version};
+use libflo_audio::{decode, encode, info, validate, version};
 
 // ============================================================================
 // Version Tests
@@ -8,7 +8,7 @@ use libflo::{decode, encode, info, validate, version};
 
 #[test]
 fn test_version() {
-    assert_eq!(version(), "1.0");
+    assert_eq!(version(), "1.1");
 }
 
 // ============================================================================

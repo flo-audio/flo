@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod decoder_tests {
-    use libflo::lossy::decoder::deserialize_sparse;
-    use libflo::lossy::encoder::serialize_sparse;
+    use libflo_audio::lossy::decoder::deserialize_sparse;
+    use libflo_audio::lossy::encoder::serialize_sparse;
 
     #[test]
     fn test_sparse_roundtrip() {

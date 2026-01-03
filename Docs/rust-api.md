@@ -8,7 +8,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-libflo = "0.1"
+libflo-audio = { version = "0.1.1" }
 ```
 
 ---
@@ -16,7 +16,7 @@ libflo = "0.1"
 ## Quick Start
 
 ```rust
-use libflo::{Encoder, decode, info};
+use libflo_audio::{Encoder, decode, info};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create 1 second of stereo silence
@@ -44,7 +44,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### Encoder
 
 ```rust
-use libflo::Encoder;
+use libflo_audio::Encoder;
 
 let encoder = Encoder::new(
     sample_rate,  // u32: e.g., 44100
@@ -79,7 +79,7 @@ Samples must be:
 ### LossyEncoder
 
 ```rust
-use libflo::{LossyEncoder, QualityPreset};
+use libflo_audio::{LossyEncoder, QualityPreset};
 
 // With quality preset
 let quality = QualityPreset::High.as_f32();
@@ -90,7 +90,7 @@ let flo_data = encoder.encode_to_flo(&samples, &[])?;
 ### Quality Presets
 
 ```rust
-use libflo::QualityPreset;
+use libflo_audio::QualityPreset;
 
 QualityPreset::Low         // 0.1  - ~48 kbps
 QualityPreset::Medium      // 0.3  - ~128 kbps
@@ -105,7 +105,7 @@ let quality: f32 = QualityPreset::High.as_f32();
 ### Target Bitrate
 
 ```rust
-use libflo::{LossyEncoder, QualityPreset};
+use libflo_audio::{LossyEncoder, QualityPreset};
 
 // Calculate quality from target bitrate
 let quality = QualityPreset::from_bitrate(
@@ -125,7 +125,7 @@ let flo_data = encoder.encode_to_flo(&samples, &[])?;
 ### Auto-detect Mode
 
 ```rust
-use libflo::decode;
+use libflo_audio::decode;
 
 // Automatically detects lossless vs lossy
 let samples: Vec<f32> = decode(&flo_data)?;
@@ -134,7 +134,7 @@ let samples: Vec<f32> = decode(&flo_data)?;
 ### Decoder Struct
 
 ```rust
-use libflo::Decoder;
+use libflo_audio::Decoder;
 
 let decoder = Decoder::new();
 let samples = decoder.decode(&flo_data)?;
@@ -145,7 +145,7 @@ let samples = decoder.decode(&flo_data)?;
 ## File Information
 
 ```rust
-use libflo::info;
+use libflo_audio::info;
 
 let file_info = info(&flo_data)?;
 
@@ -176,7 +176,7 @@ pub struct AudioInfo {
 ## Validation
 
 ```rust
-use libflo::validate;
+use libflo_audio::validate;
 
 match validate(&flo_data) {
     Ok(true) => println!("File is valid"),
@@ -192,7 +192,7 @@ match validate(&flo_data) {
 ### FloMetadata Struct
 
 ```rust
-use libflo::{FloMetadata, SectionType, PictureType};
+use libflo_audio::{FloMetadata, SectionType, PictureType};
 
 let mut meta = FloMetadata::new();
 
@@ -221,7 +221,7 @@ let flo_data = encoder.encode(&samples, &metadata_bytes)?;
 ### Section Markers
 
 ```rust
-use libflo::{FloMetadata, SectionType};
+use libflo_audio::{FloMetadata, SectionType};
 
 let mut meta = FloMetadata::new();
 
@@ -247,7 +247,7 @@ pub enum SectionType {
 ### Cover Art
 
 ```rust
-use libflo::{FloMetadata, Picture, PictureType};
+use libflo_audio::{FloMetadata, Picture, PictureType};
 use std::fs;
 
 let mut meta = FloMetadata::new();
@@ -266,7 +266,7 @@ meta.pictures = Some(vec![
 ### Synchronized Lyrics
 
 ```rust
-use libflo::{FloMetadata, SyncedLyrics, LyricLine, LyricContentType};
+use libflo_audio::{FloMetadata, SyncedLyrics, LyricLine, LyricContentType};
 
 let mut meta = FloMetadata::new();
 
@@ -287,7 +287,7 @@ meta.synced_lyrics = Some(vec![
 ### Reading Metadata
 
 ```rust
-use libflo::get_metadata;
+use libflo_audio::get_metadata;
 
 let meta = get_metadata(&flo_data)?;
 
@@ -309,7 +309,7 @@ if let Some(sections) = meta.section_markers {
 ### Reader
 
 ```rust
-use libflo::Reader;
+use libflo_audio::Reader;
 
 let reader = Reader::new();
 let flo_file = reader.read(&data)?;
@@ -327,7 +327,7 @@ for frame in &flo_file.frames {
 ### Writer
 
 ```rust
-use libflo::{Writer, FloFile};
+use libflo_audio::{Writer, FloFile};
 
 let writer = Writer::new();
 let data = writer.write(&flo_file)?;
@@ -340,7 +340,7 @@ let data = writer.write(&flo_file)?;
 All functions return `FloResult<T>`:
 
 ```rust
-use libflo::{decode, FloError};
+use libflo_audio::{decode, FloError};
 
 match decode(&data) {
     Ok(samples) => println!("Decoded {} samples", samples.len()),
@@ -366,20 +366,6 @@ pub enum FloError {
     IoError(std::io::Error),
 }
 ```
-
----
-
-## Feature Flags
-
-```toml
-[dependencies]
-libflo = { version = "0.1", features = ["..."] }
-```
-
-| Feature | Default | Description |
-|---------|---------|-------------|
-| `std` | ✓ | Standard library support |
-| `wasm` | ✗ | WebAssembly bindings |
 
 ---
 

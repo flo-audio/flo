@@ -12,7 +12,7 @@ pub mod wasm;
 use anyhow::{Context, Result};
 
 /// Re-export libflo types
-pub use libflo::FloMetadata;
+pub use libflo_audio::FloMetadata;
 
 /// Information about a flo™ file
 #[derive(Debug, Clone)]
@@ -32,7 +32,7 @@ pub struct FloInfo {
 
 /// Get information about a flo™ file
 pub fn get_flo_info(data: &[u8]) -> Result<FloInfo> {
-    let reader = libflo::Reader::new();
+    let reader = libflo_audio::Reader::new();
     let file = reader
         .read(data)
         .map_err(|e| anyhow::anyhow!("Failed to read flo file: {}", e))?;
@@ -53,7 +53,7 @@ pub fn get_flo_info(data: &[u8]) -> Result<FloInfo> {
     let end = start + (file.header.data_size as usize);
     let crc_valid = if end <= data.len() {
         let data_slice = &data[start..end];
-        let computed_crc = libflo::compute_crc32(data_slice);
+        let computed_crc = libflo_audio::compute_crc32(data_slice);
         computed_crc == file.header.data_crc32
     } else {
         false
@@ -215,7 +215,7 @@ pub fn encode_from_samples(
             m.bpm = Some(b as u32);
         }
         if let Some(c) = source_metadata.comment {
-            m.comments = vec![libflo::Comment {
+            m.comments = vec![libflo_audio::Comment {
                 language: Some("eng".to_string()),
                 description: None,
                 text: c,
@@ -224,8 +224,8 @@ pub fn encode_from_samples(
 
         // Add cover art
         if let Some((mime, data)) = source_metadata.cover_art {
-            m.pictures = vec![libflo::Picture {
-                picture_type: libflo::PictureType::CoverFront,
+            m.pictures = vec![libflo_audio::Picture {
+                picture_type: libflo_audio::PictureType::CoverFront,
                 mime_type: mime,
                 description: None,
                 data,
@@ -254,19 +254,19 @@ pub fn encode_from_samples(
     let flo_data = if options.lossy || options.bitrate.is_some() {
         // Lossy encoding using TransformEncoder
         let quality_value = if let Some(br) = options.bitrate {
-            libflo::QualityPreset::from_bitrate(br, sample_rate, channels as u8).as_f32()
+            libflo_audio::QualityPreset::from_bitrate(br, sample_rate, channels as u8).as_f32()
         } else {
             options.quality
         };
 
-        let mut encoder = libflo::LossyEncoder::new(sample_rate, channels as u8, quality_value);
+        let mut encoder = libflo_audio::LossyEncoder::new(sample_rate, channels as u8, quality_value);
         encoder
             .encode_to_flo(samples, &metadata_data)
             .map_err(|e| anyhow::anyhow!("Encoding failed: {}", e))?
     } else {
         // Lossless encoding
         let encoder =
-            libflo::Encoder::new(sample_rate, channels as u8, 16).with_compression(options.level);
+            libflo_audio::Encoder::new(sample_rate, channels as u8, 16).with_compression(options.level);
         encoder
             .encode(samples, &metadata_data)
             .map_err(|e| anyhow::anyhow!("Encoding failed: {}", e))?
@@ -284,7 +284,7 @@ pub fn encode_from_samples(
 /// Tuple of (samples, sample_rate, channels) where samples are interleaved f32
 pub fn decode_to_samples(flo_bytes: &[u8]) -> Result<(Vec<f32>, u32, usize)> {
     // Read file using Reader
-    let reader = libflo::Reader::new();
+    let reader = libflo_audio::Reader::new();
     let file = reader
         .read(flo_bytes)
         .map_err(|e| anyhow::anyhow!("Invalid flo™ file: {}", e))?;
@@ -297,7 +297,7 @@ pub fn decode_to_samples(flo_bytes: &[u8]) -> Result<(Vec<f32>, u32, usize)> {
 
     let samples = if is_lossy {
         // Lossy decoding using TransformDecoder
-        let mut decoder = libflo::LossyDecoder::new(sample_rate, file.header.channels);
+        let mut decoder = libflo_audio::LossyDecoder::new(sample_rate, file.header.channels);
         let mut all_samples = Vec::new();
         let mut frame_count = 0;
 
@@ -310,7 +310,7 @@ pub fn decode_to_samples(flo_bytes: &[u8]) -> Result<(Vec<f32>, u32, usize)> {
             let frame_data = &frame.channels[0].residuals;
 
             // Deserialize and decode
-            let transform_frame = libflo::deserialize_frame(frame_data)
+            let transform_frame = libflo_audio::deserialize_frame(frame_data)
                 .ok_or_else(|| anyhow::anyhow!("Failed to deserialize lossy frame"))?;
 
             let frame_samples = decoder.decode_frame(&transform_frame);
@@ -324,7 +324,7 @@ pub fn decode_to_samples(flo_bytes: &[u8]) -> Result<(Vec<f32>, u32, usize)> {
         all_samples
     } else {
         // Lossless decoding
-        let decoder = libflo::Decoder::new();
+        let decoder = libflo_audio::Decoder::new();
         decoder
             .decode_file(&file)
             .map_err(|e| anyhow::anyhow!("Lossless decoding failed: {}", e))?
@@ -354,7 +354,7 @@ pub fn decode_to_wav(flo_bytes: &[u8]) -> Result<Vec<u8>> {
 /// # Returns
 /// Metadata if present, or None
 pub fn get_metadata(flo_bytes: &[u8]) -> Result<Option<FloMetadata>> {
-    let reader = libflo::Reader::new();
+    let reader = libflo_audio::Reader::new();
     let file = reader
         .read(flo_bytes)
         .map_err(|e| anyhow::anyhow!("Invalid flo™ file: {}", e))?;
@@ -417,7 +417,7 @@ pub fn update_metadata_no_reencode(
 /// Update metadata bytes in a flo™ file (internal implementation)
 pub fn update_metadata_bytes(flo_bytes: &[u8], new_metadata: &[u8]) -> Result<Vec<u8>> {
     // Use libflo's efficient update function
-    libflo::update_metadata_bytes(flo_bytes, new_metadata)
+    libflo_audio::update_metadata_bytes(flo_bytes, new_metadata)
         .map_err(|e| anyhow::anyhow!("Failed to update metadata: {}", e))
 }
 
@@ -428,7 +428,7 @@ pub fn strip_metadata_no_reencode(flo_bytes: &[u8]) -> Result<Vec<u8>> {
 
 /// Check if a flo™ file has metadata (fast - reads header only)
 pub fn has_metadata(flo_bytes: &[u8]) -> bool {
-    libflo::has_metadata(flo_bytes)
+    libflo_audio::has_metadata(flo_bytes)
 }
 
 /// Convert JavaScript metadata object to FloMetadata
@@ -470,7 +470,7 @@ fn metadata_from_js(metadata: wasm_bindgen::JsValue) -> Result<FloMetadata> {
 
     // Handle comment as a single comment in the comments vector
     if let Some(comment_text) = get_str("comment") {
-        meta.comments = vec![libflo::Comment {
+        meta.comments = vec![libflo_audio::Comment {
             language: None,
             description: None,
             text: comment_text,

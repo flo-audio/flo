@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod mdct_tests {
-    use libflo::lossy::mdct::*;
+    use libflo_audio::lossy::mdct::*;
     use std::f32::consts::PI;
 
     #[test]

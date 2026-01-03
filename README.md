@@ -204,7 +204,7 @@ flo/
 ### Rust
 
 ```rust
-use libflo::{Encoder, Decoder, LossyEncoder, QualityPreset, FloMetadata, SectionType};
+use libflo_audio::{Encoder, Decoder, LossyEncoder, QualityPreset, FloMetadata, SectionType};
 
 // === Lossless Encoding ===
 let encoder = Encoder::new(44100, 2, 16);
