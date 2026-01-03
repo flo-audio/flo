@@ -259,14 +259,15 @@ pub fn encode_from_samples(
             options.quality
         };
 
-        let mut encoder = libflo_audio::LossyEncoder::new(sample_rate, channels as u8, quality_value);
+        let mut encoder =
+            libflo_audio::LossyEncoder::new(sample_rate, channels as u8, quality_value);
         encoder
             .encode_to_flo(samples, &metadata_data)
             .map_err(|e| anyhow::anyhow!("Encoding failed: {}", e))?
     } else {
         // Lossless encoding
-        let encoder =
-            libflo_audio::Encoder::new(sample_rate, channels as u8, 16).with_compression(options.level);
+        let encoder = libflo_audio::Encoder::new(sample_rate, channels as u8, 16)
+            .with_compression(options.level);
         encoder
             .encode(samples, &metadata_data)
             .map_err(|e| anyhow::anyhow!("Encoding failed: {}", e))?
