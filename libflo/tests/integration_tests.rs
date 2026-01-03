@@ -8,7 +8,7 @@ use libflo_audio::{decode, encode, info, validate, version};
 
 #[test]
 fn test_version() {
-    assert_eq!(version(), "1.1");
+    assert_eq!(version(), "1.2");
 }
 
 // ============================================================================

@@ -29,7 +29,7 @@ Download from [GitHub Releases](https://github.com/flo-audio/flo/releases):
 Add to your `Cargo.toml`:
 ```toml
 [dependencies]
-libflo-audio = { version = "0.1.1" }
+libflo-audio = { version = "0.1.2" }
 ```
 
 ### JavaScript (WASM)

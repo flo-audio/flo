@@ -201,7 +201,7 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "libflo-audio"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f70879c2dee4a72800ca888057deb07e365552aa5253e5587f654d9ccec248cb"
 dependencies = [
@@ -297,7 +297,7 @@ dependencies = [
 
 [[package]]
 name = "reflo"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "clap",

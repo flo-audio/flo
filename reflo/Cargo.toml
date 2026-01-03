@@ -1,6 +1,6 @@
 [package]
 name = "reflo"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "Audio format converter for the flo™ audio format. Available as CLI and library with WebAssembly support"
 license = "Apache-2.0"
@@ -21,7 +21,7 @@ path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-libflo-audio = { version = "0.1.1" }
+libflo-audio = { version = "0.1.2" }
 clap = { version = "4.4", features = ["derive"], optional = true }
 anyhow = "1.0"
 serde = { version = "1.0", features = ["derive"] }

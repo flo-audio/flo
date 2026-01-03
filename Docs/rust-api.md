@@ -8,7 +8,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-libflo-audio = { version = "0.1.1" }
+libflo-audio = { version = "0.1.2" }
 ```
 
 ---
