@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>flo™ Audio Codec</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>flo™ Audio Codec</h1>
+            <p style="color: #888; margin-top: 8px;">Convert any audio format (MP3, WAV, FLAC, OGG, AAC) to flo™</p>
+        </header>
+
+        <!-- Source Selection -->
+        <div class="card">
+            <div class="card-title">Audio Source</div>
+            <div class="btn-group">
+                <button class="btn" onclick="runTest('sine')">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M2 12c0-3 2-6 4-6s4 6 4 6 2 6 4 6 4-6 4-6 2-6 4-6"/></svg>
+                    Sine Wave
+                </button>
+                <button class="btn" onclick="runTest('stereo')">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M2 12c0-3 2-6 4-6s4 6 4 6M14 12c0-3 2-6 4-6s4 6 4 6"/></svg>
+                    Stereo Test
+                </button>
+                <button class="btn" onclick="runTest('noise')">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M4 12h2l2-8 3 16 3-12 2 4h4"/></svg>
+                    White Noise
+                </button>
+                <button class="btn btn-record" id="recordBtn" onclick="toggleRecording()">
+                    <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/></svg>
+                    Record
+                </button>
+                <button class="btn" onclick="document.getElementById('fileInput').click()">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                    Upload
+                </button>
+                <input type="file" id="fileInput" class="file-input" accept="audio/*,.flo" onchange="handleFile(this.files[0])">
+            </div>
+        </div>
+
+        <!-- Metadata Editor -->
+        <div class="card" id="metadataEditorCard">
+            <div class="card-title" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="toggleMetadataEditor()">
+                <span>Metadata (optional) <span class="help-icon" title="Add information about your audio: title, artist, album, etc. This data is embedded in the .flo file.">?</span></span>
+                <svg class="icon" id="metadataEditorChevron" viewBox="0 0 24 24" style="transition: transform 0.2s;"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <div id="metadataEditorContent" class="metadata-editor hidden">
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label for="metaTitle">Title</label>
+                        <input type="text" id="metaTitle" placeholder="Song title">
+                    </div>
+                    <div class="input-group">
+                        <label for="metaArtist">Artist</label>
+                        <input type="text" id="metaArtist" placeholder="Artist name">
+                    </div>
+                    <div class="input-group">
+                        <label for="metaAlbum">Album</label>
+                        <input type="text" id="metaAlbum" placeholder="Album name">
+                    </div>
+                    <div class="input-group">
+                        <label for="metaYear">Year</label>
+                        <input type="number" id="metaYear" placeholder="2025" min="1900" max="2100">
+                    </div>
+                    <div class="input-group">
+                        <label for="metaGenre">Genre</label>
+                        <input type="text" id="metaGenre" placeholder="Electronic, Rock, etc.">
+                    </div>
+                    <div class="input-group">
+                        <label for="metaBpm">BPM</label>
+                        <input type="number" id="metaBpm" placeholder="120" min="1" max="999">
+                    </div>
+                    <div class="input-group">
+                        <label for="metaKey">Key</label>
+                        <input type="text" id="metaKey" placeholder="Am, F#m, Bb">
+                    </div>
+                    <div class="input-group">
+                        <label for="metaTrack">Track #</label>
+                        <input type="number" id="metaTrack" placeholder="1" min="1" max="999">
+                    </div>
+                </div>
+                <div class="input-group" style="margin-top: 12px;">
+                    <label for="metaComment">Comment</label>
+                    <textarea id="metaComment" placeholder="Additional notes..." rows="2"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Encoding Options -->
+        <div class="card" id="encodingOptionsCard">
+            <div class="card-title">Encoding Mode <span class="help-icon" title="Lossless: Perfect quality, larger files (2-3x compression). Lossy: Transparent quality, much smaller files (10-30x compression).">?</span></div>
+            <div class="encoding-mode">
+                <div class="mode-btn active" id="modeLossless" onclick="setEncodingMode('lossless')">
+                    <span class="mode-name">Lossless</span>
+                    <span class="mode-desc">Perfect quality (2-3x)</span>
+                </div>
+                <div class="mode-btn" id="modeLossy" onclick="setEncodingMode('lossy')">
+                    <span class="mode-name">Lossy</span>
+                    <span class="mode-desc">Smaller files (10-30x)</span>
+                </div>
+            </div>
+            <div class="quality-slider hidden" id="qualitySlider">
+                <label>Quality Level <span class="help-icon" title="Higher quality = larger files but better sound. 'High' and above are transparent (indistinguishable from original).">?</span></label>
+                <input type="range" id="qualityRange" min="0" max="4" value="2" oninput="updateQualityLabel()">
+                <div class="quality-labels">
+                    <span>Low</span>
+                    <span>Medium</span>
+                    <span>High</span>
+                    <span>V.High</span>
+                    <span>Transparent</span>
+                </div>
+                <div class="quality-value" id="qualityValue">High (~192 kbps)</div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="card hidden" id="statsCard">
+            <div class="card-title">Encoding Stats</div>
+            <div class="stats-grid">
+                <div class="stat">
+                    <div class="stat-label">Frame Type</div>
+                    <div class="stat-value" id="statFrameType">-</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Compression</div>
+                    <div class="stat-value" id="statCompression">-</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Channels</div>
+                    <div class="stat-value" id="statChannels">-</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Size</div>
+                    <div class="stat-value" id="statSize">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="card hidden" id="metadataCard">
+            <div class="card-title">Metadata</div>
+            <div id="metadataContent" class="metadata-content">
+                <p class="text-muted">No metadata</p>
+            </div>
+        </div>
+
+        <!-- Streaming Demo -->
+        <div class="card" id="streamingCard">
+            <div class="card-title">Streaming Demo</div>
+            <p class="text-muted" style="margin-bottom: 12px;">
+                Test streaming decode: audio is decoded incrementally as chunks arrive.
+            </p>
+            <div class="btn-group">
+                <button class="btn" onclick="streamFile()">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                    Stream .flo File
+                </button>
+                <button class="btn btn-primary" id="streamPlayBtn" onclick="playStreamed()" disabled>
+                    <svg class="icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    Play
+                </button>
+                <button class="btn" onclick="stopStream()">
+                    <svg class="icon" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                    Stop
+                </button>
+                <input type="file" id="streamFileInput" class="file-input" accept=".flo" onchange="handleStreamFile(this.files[0])">
+            </div>
+            <div class="streaming-info">
+                <span id="streamingStatus" class="streaming-status status-idle">Ready</span>
+                <span id="streamingProgress" class="streaming-progress"></span>
+            </div>
+        </div>
+
+        <!-- Waveform -->
+        <div class="card hidden" id="waveformCard">
+            <div class="card-title">Waveform</div>
+            <canvas id="visualizer" width="672" height="160"></canvas>
+            <div class="canvas-legend">
+                <div class="legend-item">
+                    <div class="legend-dot original"></div>
+                    Original
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot decoded"></div>
+                    Decoded
+                </div>
+            </div>
+        </div>
+
+        <!-- Playback -->
+        <div class="card hidden" id="playbackCard">
+            <div class="card-title">Output</div>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="playBtn" onclick="playAudio()">
+                    <svg class="icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    Play
+                </button>
+                <button class="btn" id="downloadFloBtn" onclick="downloadFlo()">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                    Download .flo
+                </button>
+                <button class="btn" id="downloadWavBtn" onclick="downloadWav()">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                    Download .wav
+                </button>
+            </div>
+        </div>
+
+        <!-- Log -->
+        <div class="card">
+            <div class="card-title">Console</div>
+            <div class="log" id="output">Initializing WASM module...</div>
+        </div>
+
+        <footer>
+            <span>flo™ v1.0 &middot; Apache-2.0</span>
+            <a href="https://github.com/NellowTCS/flo/tree/main/Docs/" target="_blank">Documentation</a>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/eruda@3.4.3/eruda.js"></script>
+    <script>eruda.init();</script>
+    <script type="module" src="main.js"></script>
+</body>
+</html>

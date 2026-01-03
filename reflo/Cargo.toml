@@ -1,0 +1,57 @@
+[package]
+name = "reflo"
+version = "0.1.0"
+edition = "2021"
+description = "Audio format converter for the flo™ audio format. Available as CLI and library with WebAssembly support"
+license = "MIT"
+authors = ["NellowTCS"]
+repository = "https://github.com/flo-audio/flo"
+homepage = "https://github.com/flo-audio/flo"
+keywords = ["audio", "codec", "compression", "wasm", "converter"]
+categories = ["multimedia::audio", "multimedia::encoding", "command-line-utilities", "wasm"]
+readme = "README.md"
+
+[[bin]]
+name = "reflo"
+path = "src/main.rs"
+
+[lib]
+name = "reflo"
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+libflo = { path = "../libflo" }
+clap = { version = "4.4", features = ["derive"], optional = true }
+anyhow = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Symphonia for all audio formats including WAV
+symphonia = { version = "0.5", features = [
+    "mp3",
+    "flac", 
+    "ogg",
+    "vorbis",
+    "aac",
+    "isomp4",
+    "pcm",
+    "wav",
+] }
+
+# WASM dependencies
+wasm-bindgen = { version = "0.2", optional = true }
+js-sys = { version = "0.3", optional = true }
+console_error_panic_hook = { version = "0.1", optional = true }
+
+[features]
+default = ["cli"]
+cli = ["dep:clap"]
+wasm = ["dep:wasm-bindgen", "dep:js-sys", "dep:console_error_panic_hook"]
+
+# Speed optimizations
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"

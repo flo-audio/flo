@@ -1,0 +1,78 @@
+name: Build CLI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  release:
+    types: [created]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-cli:
+    name: Build CLI (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            artifact: reflo-linux
+            binary: reflo
+          - os: macos-latest
+            artifact: reflo-macos
+            binary: reflo
+          - os: windows-latest
+            artifact: reflo-windows
+            binary: reflo.exe
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: reflo
+
+      - name: Build reflo (release)
+        run: cd reflo && cargo build --release
+
+      - name: Upload CLI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: reflo/target/release/${{ matrix.binary }}          
+          retention-days: 7
+
+  build-cli-arm:
+    name: Build CLI (macOS ARM64)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: reflo
+
+      - name: Build for ARM64
+        run: cd reflo && cargo build --release --target aarch64-apple-darwin
+
+      - name: Upload ARM64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flo-macos-arm64
+          path: reflo/target/aarch64-apple-darwin/release/flo
