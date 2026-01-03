@@ -1,0 +1,42 @@
+name: Build Web Demo
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-demo:
+    name: Build Web Demo
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
+
+      - name: Build Web Demo
+        run: ./Scripts/build.sh wasm
+
+      - name: Upload Demo artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-demo
+          path: |
+            Demo/
+            !Demo/**/*.md
+          retention-days: 30
