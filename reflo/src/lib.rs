@@ -407,9 +407,10 @@ pub fn update_metadata_no_reencode(
 ) -> Result<Vec<u8>> {
     // Convert JS object to FloMetadata
     let meta = metadata_from_js(metadata)?;
-    let meta_bytes = meta.to_msgpack()
+    let meta_bytes = meta
+        .to_msgpack()
         .map_err(|e| anyhow::anyhow!("Failed to serialize metadata: {}", e))?;
-    
+
     update_metadata_bytes(flo_bytes, &meta_bytes)
 }
 
@@ -434,12 +435,13 @@ pub fn has_metadata(flo_bytes: &[u8]) -> bool {
 #[cfg(target_arch = "wasm32")]
 fn metadata_from_js(metadata: wasm_bindgen::JsValue) -> Result<FloMetadata> {
     use wasm_bindgen::JsCast;
-    
-    let obj = metadata.dyn_ref::<js_sys::Object>()
+
+    let obj = metadata
+        .dyn_ref::<js_sys::Object>()
         .ok_or_else(|| anyhow::anyhow!("Metadata must be an object"))?;
-    
+
     let mut meta = FloMetadata::default();
-    
+
     // Helper to get string field
     let get_str = |key: &str| -> Option<String> {
         js_sys::Reflect::get(obj, &wasm_bindgen::JsValue::from_str(key))
@@ -447,7 +449,7 @@ fn metadata_from_js(metadata: wasm_bindgen::JsValue) -> Result<FloMetadata> {
             .and_then(|v| v.as_string())
             .filter(|s| !s.is_empty())
     };
-    
+
     // Helper to get u32 field
     let get_u32 = |key: &str| -> Option<u32> {
         js_sys::Reflect::get(obj, &wasm_bindgen::JsValue::from_str(key))
@@ -456,7 +458,7 @@ fn metadata_from_js(metadata: wasm_bindgen::JsValue) -> Result<FloMetadata> {
             .map(|n| n as u32)
             .filter(|&n| n > 0)
     };
-    
+
     meta.title = get_str("title");
     meta.artist = get_str("artist");
     meta.album = get_str("album");
@@ -465,7 +467,7 @@ fn metadata_from_js(metadata: wasm_bindgen::JsValue) -> Result<FloMetadata> {
     meta.track_number = get_u32("track");
     meta.bpm = get_u32("bpm");
     meta.key = get_str("key");
-    
+
     // Handle comment as a single comment in the comments vector
     if let Some(comment_text) = get_str("comment") {
         meta.comments = vec![libflo::Comment {
@@ -474,6 +476,6 @@ fn metadata_from_js(metadata: wasm_bindgen::JsValue) -> Result<FloMetadata> {
             text: comment_text,
         }];
     }
-    
+
     Ok(meta)
 }

@@ -109,7 +109,8 @@ impl From<u8> for FrameType {
 }
 
 /// residual encoding method
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
 pub enum ResidualEncoding {
     Rice = 0,
     Golomb = 1,
@@ -129,7 +130,8 @@ impl From<u8> for ResidualEncoding {
 // data structures
 
 /// flo file header
-#[derive(Debug, Clone)]pub struct Header {
+#[derive(Debug, Clone)]
+pub struct Header {
     pub version_major: u8,
     pub version_minor: u8,
     pub flags: u16,
@@ -168,7 +170,8 @@ impl Default for Header {
 }
 
 /// toc entry (20 bytes)
-#[derive(Debug, Clone)]pub struct TocEntry {
+#[derive(Debug, Clone)]
+pub struct TocEntry {
     pub frame_index: u32,
     pub byte_offset: u64,
     pub frame_size: u32,
@@ -218,7 +221,8 @@ impl ChannelData {
 }
 
 /// audio frame (1 second)
-#[derive(Debug, Clone)]pub struct Frame {
+#[derive(Debug, Clone)]
+pub struct Frame {
     pub frame_type: u8,
     pub frame_samples: u32,
     pub flags: u8,
@@ -264,7 +268,8 @@ impl Frame {
 }
 
 /// complete decoded flo file
-#[derive(Debug, Clone)]pub struct FloFile {
+#[derive(Debug, Clone)]
+pub struct FloFile {
     pub header: Header,
     pub toc: Vec<TocEntry>,
     pub frames: Vec<Frame>,

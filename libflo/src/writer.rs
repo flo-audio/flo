@@ -35,7 +35,8 @@ impl Writer {
     }
 
     /// write flo file with extended options
-    #[allow(clippy::too_many_arguments)]    pub fn write_ex(
+    #[allow(clippy::too_many_arguments)]
+    pub fn write_ex(
         mut self,
         sample_rate: u32,
         channels: u8,

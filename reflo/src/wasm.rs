@@ -206,8 +206,7 @@ pub fn update_flo_metadata(flo_bytes: &[u8], metadata: JsValue) -> Result<Vec<u8
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 pub fn strip_flo_metadata(flo_bytes: &[u8]) -> Result<Vec<u8>, JsValue> {
-    crate::strip_metadata_no_reencode(flo_bytes)
-        .map_err(|e| JsValue::from_str(&e.to_string()))
+    crate::strip_metadata_no_reencode(flo_bytes).map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
 /// Check if a flo™ file has metadata

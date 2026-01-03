@@ -718,7 +718,7 @@ pub fn update_metadata_bytes(flo_data: &[u8], new_metadata: &[u8]) -> FloResult<
     }
 
     // check magic
-    if &flo_data[0..4] != MAGIC {
+    if flo_data[0..4] != MAGIC {
         return Err("Invalid flo file: bad magic".to_string());
     }
 
