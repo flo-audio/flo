@@ -12,7 +12,7 @@ npm install @flo-audio/libflo
 ### CDN / Direct
 ```html
 <script type="module">
-  import init, * as libflo from './pkg-libflo/libflo.js';
+  import init, * as libflo from './pkg-libflo/libflo_audio.js';
   await init();
 </script>
 ```

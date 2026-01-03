@@ -41,7 +41,7 @@ npm install @flo-audio/libflo
 Or use directly in HTML:
 ```html
 <script type="module">
-  import init, { encode, decode } from './pkg-libflo/libflo.js';
+  import init, { encode, decode } from './pkg-libflo/libflo_audio.js';
   await init();
 </script>
 ```

@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { get_metadata, get_cover_art, get_synced_lyrics, get_section_markers, get_waveform_data } from '../pkg-libflo/libflo.js';
+import { get_metadata, get_cover_art, get_synced_lyrics, get_section_markers, get_waveform_data } from '../pkg-libflo/libflo_audio.js';
 
 // dom elements (lazy loaded)
 let elements = null;

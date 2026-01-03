@@ -63,7 +63,7 @@ reflo info sine_440hz_mono.flo
 
 ### Using JavaScript
 ```javascript
-import init, { decode, info } from './libflo.js';
+import init, { decode, info } from './libflo_audio.js';
 
 await init();
 const floData = await fetch('sine_440hz_mono.flo').then(r => r.arrayBuffer());

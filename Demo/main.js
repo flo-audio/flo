@@ -1,5 +1,5 @@
 import init from './pkg-reflo/reflo.js';
-import initLibflo from './pkg-libflo/libflo.js';
+import initLibflo from './pkg-libflo/libflo_audio.js';
 import { state, hasSource } from './js/state.js';
 import { encodeAndUpdateUI, scheduleReencode, scheduleMetadataUpdate } from './js/encoder.js';
 import { generateTestSignal, handleFile as handleFileInternal, startRecording, stopRecording } from './js/audio.js';

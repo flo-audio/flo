@@ -145,7 +145,7 @@ let decoded = decode(&flo_data)?;
 ### JavaScript (WASM)
 
 ```javascript
-import init, { encode, encode_lossy, decode, info, validate, version } from './libflo.js';
+import init, { encode, encode_lossy, decode, info, validate, version } from './libflo_audio.js';
 
 await init();
 
@@ -172,7 +172,7 @@ console.log(`Lossy: ${fileInfo.is_lossy}, Ratio: ${fileInfo.compression_ratio}`)
 For real-time playback and progressive loading:
 
 ```javascript
-import init, { WasmStreamingDecoder } from './libflo.js';
+import init, { WasmStreamingDecoder } from './libflo_audio.js';
 
 await init();
 

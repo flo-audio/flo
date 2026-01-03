@@ -1,4 +1,4 @@
-import { WasmStreamingDecoder } from '../pkg-libflo/libflo.js';
+import { WasmStreamingDecoder } from '../pkg-libflo/libflo_audio.js';
 import { log } from './ui.js';
 
 let streamingDemo = null;

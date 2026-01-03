@@ -138,7 +138,7 @@ FLO's design separates metadata from audio data, allowing instant updates. No re
 ### JavaScript API
 
 ```javascript
-import { encode, get_metadata, get_cover_art, get_synced_lyrics } from './libflo.js';
+import { encode, get_metadata, get_cover_art, get_synced_lyrics } from './libflo_audio.js';
 
 // Create metadata
 const metadata = create_metadata_from_object({
@@ -245,7 +245,7 @@ let samples = decoder.decode(&flo_data)?;
 import init, { 
     encode, encode_lossy, encode_transform, encode_with_bitrate,
     decode, info, validate, get_metadata 
-} from './pkg-libflo/libflo.js';
+} from './pkg-libflo/libflo_audio.js';
 
 await init();
 
@@ -278,7 +278,7 @@ const meta = get_metadata(floData);
 For real-time playback and progressive loading:
 
 ```javascript
-import init, { WasmStreamingDecoder } from './pkg-libflo/libflo.js';
+import init, { WasmStreamingDecoder } from './pkg-libflo/libflo_audio.js';
 
 await init();
 
