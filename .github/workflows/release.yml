@@ -49,6 +49,8 @@ jobs:
 
       - name: Publish libflo-audio to npm
         run: cd libflo/pkg && npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
 
       - name: Build reflo WASM
         run: |
@@ -58,3 +60,5 @@ jobs:
 
       - name: Publish reflo to npm
         run: cd reflo/pkg && npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
