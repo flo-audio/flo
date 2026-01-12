@@ -323,6 +323,6 @@ Copyright 2026 NellowTCS
 
 The flo™ codec is licensed under the Apache License, Version 2.0. Check [LICENSE](LICENSE) for more details.
 
-## Trademark Notice
+## "Trademark" Notice
 
-"flo" and related branding are trademarks of NellowTCS. While the flo™ codec is open-source, the name "flo" and the branding are protected. You may not distribute modified versions of this software under the name "flo" without permission.
+"flo" and related branding are (not yet) trademarks of NellowTCS. While the flo™ codec is open-source, the name "flo" and the branding are protected (by common decency). You may not distribute modified versions of this software under the name "flo" without permission.
