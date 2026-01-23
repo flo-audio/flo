@@ -1,9 +1,11 @@
+pub mod analysis;
 pub mod audio_constants;
 pub mod crc32;
 pub mod metadata;
 pub mod rice;
 pub mod types;
 
+pub use analysis::*;
 pub use audio_constants::*;
 pub use crc32::compute as compute_crc32;
 
@@ -40,4 +42,9 @@ pub use metadata::{
     UserText,
     UserUrl,
     WaveformData,
+};
+
+pub use analysis::{
+    extract_dominant_frequencies, extract_spectral_fingerprint, extract_waveform_peaks,
+    extract_waveform_rms, spectral_similarity, SpectralFingerprint,
 };

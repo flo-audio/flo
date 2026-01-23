@@ -1,5 +1,6 @@
 #![allow(clippy::needless_range_loop)]
 
+use rmp_serde::{from_slice, to_vec};
 use wasm_bindgen::prelude::*;
 
 pub mod core;
@@ -96,9 +97,18 @@ pub fn encode(
     bit_depth: u8,
     metadata: Option<Vec<u8>>,
 ) -> Result<Vec<u8>, JsValue> {
+    // Auto-add waveform data if missing
+    let metadata_with_waveform = add_waveform_if_missing(
+        &metadata.unwrap_or_default(),
+        samples,
+        sample_rate,
+        channels,
+        50, // 50 peaks per second default
+    );
+
     let encoder = Encoder::new(sample_rate, channels, bit_depth);
     encoder
-        .encode(samples, &metadata.unwrap_or_default())
+        .encode(samples, &metadata_with_waveform)
         .map_err(to_js_err)
 }
 
@@ -136,9 +146,18 @@ pub fn encode_lossy(
         _ => 1.0,
     };
 
+    // Auto-add waveform data if missing
+    let metadata_with_waveform = add_waveform_if_missing(
+        &metadata.unwrap_or_default(),
+        samples,
+        sample_rate,
+        channels,
+        50, // 50 peaks per second default
+    );
+
     let mut encoder = lossy::TransformEncoder::new(sample_rate, channels, quality_f32);
     encoder
-        .encode_to_flo(samples, &metadata.unwrap_or_default())
+        .encode_to_flo(samples, &metadata_with_waveform)
         .map_err(to_js_err)
 }
 
@@ -166,10 +185,60 @@ pub fn encode_with_bitrate(
     // bitrate to quality
     let quality =
         lossy::QualityPreset::from_bitrate(target_bitrate_kbps, sample_rate, channels).as_f32();
+
+    // Auto-add waveform data if missing
+    let metadata_with_waveform = add_waveform_if_missing(
+        &metadata.unwrap_or_default(),
+        samples,
+        sample_rate,
+        channels,
+        50, // 50 peaks per second default
+    );
+
     let mut encoder = lossy::TransformEncoder::new(sample_rate, channels, quality);
     encoder
-        .encode_to_flo(samples, &metadata.unwrap_or_default())
+        .encode_to_flo(samples, &metadata_with_waveform)
         .map_err(to_js_err)
+}
+
+/// Add waveform data to metadata if not present
+///
+/// # Arguments
+/// * `metadata` - MessagePack metadata bytes
+/// * `samples` - Audio samples (interleaved)
+/// * `sample_rate` - Sample rate in Hz
+/// * `channels` - Number of audio channels
+/// * `peaks_per_second` - Number of peaks per second (default: 50)
+///
+/// # Returns
+/// Updated metadata with waveform data
+fn add_waveform_if_missing(
+    metadata: &[u8],
+    samples: &[f32],
+    sample_rate: u32,
+    channels: u8,
+    peaks_per_second: u32,
+) -> Vec<u8> {
+    // Try to parse existing metadata
+    let mut flo_metadata: FloMetadata = if !metadata.is_empty() {
+        from_slice(metadata).unwrap_or_default()
+    } else {
+        FloMetadata::default()
+    };
+
+    // Add waveform data if not present
+    if flo_metadata.waveform_data.is_none() {
+        let waveform = core::analysis::extract_waveform_peaks(
+            samples,
+            channels,
+            sample_rate,
+            peaks_per_second,
+        );
+        flo_metadata.waveform_data = Some(waveform);
+    }
+
+    // Serialize back to bytes
+    to_vec(&flo_metadata).unwrap_or_default()
 }
 
 /// decode flo file to samples
@@ -278,7 +347,7 @@ pub fn info(data: &[u8]) -> Result<AudioInfo, JsValue> {
     let reader = Reader::new();
     let file = reader.read(data).map_err(to_js_err)?;
 
-    let duration_secs = file.header.total_frames as f64;
+    let duration_secs = file.header.total_frames as f64 / file.header.sample_rate as f64;
     let original_size = ((file.header.total_frames as f64)
         * (file.header.sample_rate as f64)
         * (file.header.channels as f64)
@@ -841,6 +910,338 @@ pub fn has_metadata(flo_data: &[u8]) -> bool {
     );
 
     meta_size > 0
+}
+
+/// Extract waveform peaks from audio samples (native version)
+///
+/// # Arguments
+/// * `samples` - Interleaved audio samples (f32, -1.0 to 1.0)
+/// * `sample_rate` - Sample rate in Hz (e.g., 44100)
+/// * `channels` - Number of audio channels (1 or 2)
+/// * `peaks_per_second` - Number of peak values per second (default: 50)
+///
+/// # Returns
+/// WaveformData struct containing extracted peaks
+pub fn extract_waveform_peaks_to_struct(
+    samples: &[f32],
+    sample_rate: u32,
+    channels: u8,
+    peaks_per_second: Option<u32>,
+) -> core::metadata::WaveformData {
+    let peaks_per_second = peaks_per_second.unwrap_or(50);
+    core::analysis::extract_waveform_peaks(samples, channels, sample_rate, peaks_per_second)
+}
+
+/// Extract waveform RMS from audio samples
+///
+/// # Arguments
+/// * `samples` - Interleaved audio samples (f32, -1.0 to 1.0)
+/// * `sample_rate` - Sample rate in Hz (e.g., 44100)
+/// * `channels` - Number of audio channels (1 or 2)
+/// * `peaks_per_second` - Number of RMS values per second (default: 50)
+///
+/// # Returns
+/// WaveformData struct containing extracted RMS values
+pub fn extract_waveform_rms_to_struct(
+    samples: &[f32],
+    sample_rate: u32,
+    channels: u8,
+    peaks_per_second: Option<u32>,
+) -> core::metadata::WaveformData {
+    let peaks_per_second = peaks_per_second.unwrap_or(50);
+    core::analysis::extract_waveform_rms(samples, channels, sample_rate, peaks_per_second)
+}
+
+/// Extract waveform peaks from audio samples
+///
+/// # Arguments
+/// * `samples` - Interleaved audio samples (f32, -1.0 to 1.0)
+/// * `sample_rate` - Sample rate in Hz (e.g., 44100)
+/// * `channels` - Number of audio channels (1 or 2)
+/// * `peaks_per_second` - Number of peak values per second (default: 50)
+///
+/// # Returns
+/// JavaScript object with waveform data:
+/// ```javascript
+/// {
+///   peaks_per_second: number,
+///   peaks: Float32Array,
+///   channels: number
+/// }
+/// ```
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn extract_waveform_peaks(
+    samples: &[f32],
+    sample_rate: u32,
+    channels: u8,
+    peaks_per_second: Option<u32>,
+) -> Result<JsValue, JsValue> {
+    let waveform =
+        extract_waveform_peaks_to_struct(samples, sample_rate, channels, peaks_per_second);
+
+    // Convert to JavaScript object
+    let peaks_array = js_sys::Float32Array::from(&waveform.peaks[..]);
+    let obj = js_sys::Object::new();
+
+    js_sys::Reflect::set(
+        &obj,
+        &JsValue::from_str("peaks_per_second"),
+        &JsValue::from_f64(waveform.peaks_per_second as f64),
+    )?;
+    js_sys::Reflect::set(&obj, &JsValue::from_str("peaks"), &peaks_array)?;
+    js_sys::Reflect::set(
+        &obj,
+        &JsValue::from_str("channels"),
+        &JsValue::from_f64(waveform.channels as f64),
+    )?;
+
+    Ok(obj)
+}
+
+/// Extract waveform RMS from audio samples
+///
+/// # Arguments
+/// * `samples` - Interleaved audio samples (f32, -1.0 to 1.0)
+/// * `sample_rate` - Sample rate in Hz (e.g., 44100)
+/// * `channels` - Number of audio channels (1 or 2)
+/// * `peaks_per_second` - Number of RMS values per second (default: 50)
+///
+/// # Returns
+/// JavaScript object with waveform data
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn extract_waveform_rms(
+    samples: &[f32],
+    sample_rate: u32,
+    channels: u8,
+    peaks_per_second: Option<u32>,
+) -> Result<JsValue, JsValue> {
+    let waveform = extract_waveform_rms_to_struct(samples, sample_rate, channels, peaks_per_second);
+
+    // Convert to JavaScript object
+    let peaks_array = js_sys::Float32Array::from(&waveform.peaks[..]);
+    let obj = js_sys::Object::new();
+
+    js_sys::Reflect::set(
+        &obj,
+        &JsValue::from_str("peaks_per_second"),
+        &JsValue::from_f64(waveform.peaks_per_second as f64),
+    )?;
+    js_sys::Reflect::set(&obj, &JsValue::from_str("peaks"), &peaks_array)?;
+    js_sys::Reflect::set(
+        &obj,
+        &JsValue::from_str("channels"),
+        &JsValue::from_f64(waveform.channels as f64),
+    )?;
+
+    Ok(obj)
+}
+
+/// Extract spectral fingerprint from audio samples
+///
+/// # Arguments
+/// * `samples` - Interleaved audio samples (f32, -1.0 to 1.0)
+/// * `sample_rate` - Sample rate in Hz (e.g., 44100)
+/// * `channels` - Number of audio channels (1 or 2)
+/// * `fft_size` - FFT window size (default: 2048)
+/// * `hop_size` - Hop size between frames (default: fft_size/2)
+///
+/// # Returns
+/// SpectralFingerprint struct containing spectral analysis
+pub fn extract_spectral_fingerprint_to_struct(
+    samples: &[f32],
+    sample_rate: u32,
+    channels: u8,
+    fft_size: Option<usize>,
+    hop_size: Option<usize>,
+) -> core::analysis::SpectralFingerprint {
+    core::analysis::extract_spectral_fingerprint(samples, channels, sample_rate, fft_size, hop_size)
+}
+
+/// Extract spectral fingerprint from audio samples
+///
+/// # Arguments
+/// * `samples` - Interleaved audio samples (f32, -1.0 to 1.0)
+/// * `sample_rate` - Sample rate in Hz (e.g., 44100)
+/// * `channels` - Number of audio channels (1 or 2)
+/// * `fft_size` - FFT window size (default: 2048)
+/// * `hop_size` - Hop size between frames (default: fft_size/2)
+///
+/// # Returns
+/// JavaScript object with spectral fingerprint data:
+/// ```javascript
+/// {
+///   fft_size: number,
+///   frequency_bins: number,
+///   frequency_resolution: number,
+///   spectral_data: Float32Array[],
+///   channels: number,
+///   sample_rate: number,
+///   hop_size: number
+/// }
+/// ```
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn extract_spectral_fingerprint(
+    samples: &[f32],
+    sample_rate: u32,
+    channels: u8,
+    fft_size: Option<usize>,
+    hop_size: Option<usize>,
+) -> Result<JsValue, JsValue> {
+    let fingerprint =
+        extract_spectral_fingerprint_to_struct(samples, sample_rate, channels, fft_size, hop_size);
+
+    // Convert spectral data to JavaScript arrays
+    let spectral_data_arrays = js_sys::Array::new();
+    for frame_spectrum in &fingerprint.spectral_data {
+        let frame_array = js_sys::Float32Array::from(&frame_spectrum[..]);
+        spectral_data_arrays.push(&frame_array);
+    }
+
+    let obj = js_sys::Object::new();
+    js_sys::Reflect::set(
+        &obj,
+        &JsValue::from_str("fft_size"),
+        &JsValue::from_f64(fingerprint.fft_size as f64),
+    )?;
+    js_sys::Reflect::set(
+        &obj,
+        &JsValue::from_str("frequency_bins"),
+        &JsValue::from_f64(fingerprint.frequency_bins as f64),
+    )?;
+    js_sys::Reflect::set(
+        &obj,
+        &JsValue::from_str("frequency_resolution"),
+        &JsValue::from_f64(fingerprint.frequency_resolution),
+    )?;
+    js_sys::Reflect::set(
+        &obj,
+        &JsValue::from_str("spectral_data"),
+        &spectral_data_arrays,
+    )?;
+    js_sys::Reflect::set(
+        &obj,
+        &JsValue::from_str("channels"),
+        &JsValue::from_f64(fingerprint.channels as f64),
+    )?;
+    js_sys::Reflect::set(
+        &obj,
+        &JsValue::from_str("sample_rate"),
+        &JsValue::from_f64(fingerprint.sample_rate as f64),
+    )?;
+    js_sys::Reflect::set(
+        &obj,
+        &JsValue::from_str("hop_size"),
+        &JsValue::from_f64(fingerprint.hop_size as f64),
+    )?;
+
+    Ok(obj)
+}
+
+/// Extract dominant frequencies from spectral fingerprint
+///
+/// # Arguments
+/// * `fingerprint` - SpectralFingerprint struct
+/// * `num_frequencies` - Number of dominant frequencies to extract per frame
+///
+/// # Returns
+/// Vector of vectors containing dominant frequencies (Hz) for each frame
+pub fn extract_dominant_frequencies_to_vec(
+    fingerprint: &core::analysis::SpectralFingerprint,
+    num_frequencies: usize,
+) -> Vec<Vec<f64>> {
+    core::analysis::extract_dominant_frequencies(fingerprint, num_frequencies)
+}
+
+/// Extract dominant frequencies from spectral fingerprint
+///
+/// # Arguments
+/// * `fingerprint` - SpectralFingerprint JavaScript object
+/// * `num_frequencies` - Number of dominant frequencies to extract per frame
+///
+/// # Returns
+/// JavaScript array of arrays containing dominant frequencies (Hz)
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn extract_dominant_frequencies(
+    samples: &[f32],
+    sample_rate: u32,
+    channels: u8,
+    num_frequencies: usize,
+    fft_size: Option<usize>,
+    hop_size: Option<usize>,
+) -> Result<JsValue, JsValue> {
+    let fingerprint =
+        extract_spectral_fingerprint_to_struct(samples, sample_rate, channels, fft_size, hop_size);
+    let dominant_freqs = extract_dominant_frequencies_to_vec(&fingerprint, num_frequencies);
+
+    // Convert to JavaScript arrays
+    let js_result = js_sys::Array::new();
+    for frame_freqs in &dominant_freqs {
+        let frame_array = js_sys::Float64Array::from(&frame_freqs[..]);
+        js_result.push(&frame_array);
+    }
+
+    Ok(js_result.into())
+}
+
+/// Compute spectral similarity between two fingerprints
+///
+/// # Arguments
+/// * `fingerprint1` - First spectral fingerprint
+/// * `fingerprint2` - Second spectral fingerprint
+///
+/// # Returns
+/// Similarity score between 0.0 (completely different) and 1.0 (identical)
+pub fn spectral_similarity_score(
+    fingerprint1: &core::analysis::SpectralFingerprint,
+    fingerprint2: &core::analysis::SpectralFingerprint,
+) -> f32 {
+    core::analysis::spectral_similarity(fingerprint1, fingerprint2)
+}
+
+/// Compute spectral similarity between two fingerprints
+///
+/// # Arguments
+/// * `fingerprint1` - First spectral fingerprint JavaScript object
+/// * `fingerprint2` - Second spectral fingerprint JavaScript object
+///
+/// # Returns
+/// Similarity score between 0.0 (completely different) and 1.0 (identical)
+/// Compute spectral similarity between two audio samples directly (WASM version)
+///
+/// More efficient than fingerprint conversion approach.
+/// Computes cosine similarity between spectral fingerprints internally.
+///
+/// # Arguments
+/// * `samples1` - First audio samples
+/// * `samples2` - Second audio samples  
+/// * `sample_rate` - Sample rate in Hz
+/// * `channels` - Number of audio channels (1 or 2)
+/// * `fft_size` - FFT window size (default: 2048)
+/// * `hop_size` - Hop size between frames (default: fft_size/2)
+///
+/// # Returns
+/// Similarity score between 0.0 (completely different) and 1.0 (identical)
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn spectral_similarity(
+    samples1: &[f32],
+    samples2: &[f32],
+    sample_rate: u32,
+    channels: u8,
+    fft_size: Option<usize>,
+    hop_size: Option<usize>,
+) -> Result<JsValue, JsValue> {
+    let fingerprint1 =
+        extract_spectral_fingerprint_to_struct(samples1, sample_rate, channels, fft_size, hop_size);
+    let fingerprint2 =
+        extract_spectral_fingerprint_to_struct(samples2, sample_rate, channels, fft_size, hop_size);
+
+    let similarity = spectral_similarity_score(&fingerprint1, &fingerprint2);
+    Ok(JsValue::from_f64(similarity as f64))
 }
 
 // tests

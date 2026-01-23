@@ -148,7 +148,6 @@ impl Decoder {
     }
 
     /// Reconstruct from LPC prediction
-    /// Optimized version with branch-free inner loop
     #[inline]
     fn reconstruct_lpc_int(
         &self,

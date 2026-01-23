@@ -58,7 +58,7 @@ impl Writer {
         let data_crc32 = crc32::compute(&data_chunk);
 
         // toc
-        let toc_chunk = self.build_toc_chunk(frames);
+        let toc_chunk = self.build_toc_chunk(frames, sample_rate);
 
         // flags
         let mut flags: u16 = 0;
@@ -67,13 +67,19 @@ impl Writer {
             flags |= (lossy_quality as u16) << 8; // quality level
         }
 
+        // Calculate total samples across all frames
+        let total_samples: u64 = frames.iter().map(|frame| frame.frame_samples as u64).sum();
+
+        // Calculate total samples across all frames
+        let total_samples: u64 = frames.iter().map(|frame| frame.frame_samples as u64).sum();
+
         // header
         self.write_header_ex(
             sample_rate,
             channels,
             bit_depth,
             compression_level,
-            frames.len() as u64,
+            total_samples,
             data_crc32,
             flags,
             toc_size,
@@ -187,7 +193,7 @@ impl Writer {
         self.buffer.extend_from_slice(&meta_size.to_le_bytes());
     }
 
-    fn build_toc_chunk(&self, frames: &[Frame]) -> Vec<u8> {
+    fn build_toc_chunk(&self, frames: &[Frame], _sample_rate: u32) -> Vec<u8> {
         let mut toc = Vec::new();
 
         // Number of entries (u32 LE)

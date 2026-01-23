@@ -149,12 +149,14 @@ impl StreamingEncoder {
 
         // Header
         output.push(1); // version_major
-        output.push(1); // version_minor
+        output.push(2); // version_minor
         output.extend_from_slice(&0u16.to_le_bytes()); // flags
         output.extend_from_slice(&self.sample_rate.to_le_bytes());
         output.push(self.channels);
         output.push(self.bit_depth);
-        output.extend_from_slice(&(self.pending_frames.len() as u64).to_le_bytes());
+        // Calculate total samples across all frames
+        let total_samples: u64 = self.pending_frames.iter().map(|frame| frame.samples as u64).sum();
+        output.extend_from_slice(&total_samples.to_le_bytes());
         output.push(self.compression_level);
         output.extend_from_slice(&[0u8; 3]); // reserved
         output.extend_from_slice(&data_crc32.to_le_bytes());
