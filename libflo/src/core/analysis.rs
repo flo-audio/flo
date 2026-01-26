@@ -178,14 +178,6 @@ pub struct SpectralFingerprint {
 /// * `samples` - Audio samples (interleaved if stereo)
 /// * `channels` - Number of audio channels (1 or 2)
 /// * `sample_rate` - Sample rate in Hz
-/// * `peaks_per_second` - Desired number of peak values per second
-///
-/// Extract waveform peaks from audio samples
-///
-/// # Arguments
-/// * `samples` - Audio samples (interleaved if stereo)
-/// * `channels` - Number of audio channels (1 or 2)
-/// * `sample_rate` - Sample rate in Hz
 /// * `peaks_per_second` - Number of peak values per second
 ///
 /// # Returns

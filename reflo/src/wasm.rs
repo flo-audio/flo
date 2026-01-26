@@ -1,5 +1,10 @@
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
+use symphonia::core::io::MediaSourceStream;
+use symphonia::core::codecs::DecoderOptions;
+use symphonia::default::get_probe;
+use std::io::Cursor;
+use serde_wasm_bindgen::to_value;
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
@@ -46,12 +51,63 @@ pub fn get_flo_info(flo_bytes: &[u8]) -> Result<JsValue, JsValue> {
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
+pub fn get_audio_file_info(audio_bytes: &[u8]) -> Result<JsValue, JsValue> {
+    let cursor = Cursor::new(audio_bytes);
+    let mss = MediaSourceStream::new(Box::new(cursor), Default::default());
+    let probe = get_probe();
+
+    let probed = probe
+        .format(
+            &Default::default(),
+            mss,
+            &Default::default(),
+            &DecoderOptions::default(),
+        )
+        .map_err(|e| JsValue::from_str(&format!("Symphonia error: {}", e)))?;
+
+    let format = probed.format;
+    let track = format
+        .default_track()
+        .ok_or_else(|| JsValue::from_str("No default track"))?;
+
+    let codec_params = &track.codec_params;
+
+    // Basic fields
+    let sample_rate = codec_params.sample_rate.unwrap_or(0);
+    let channels = codec_params.channels.map(|c| c.count()).unwrap_or(0) as u8;
+    let duration_secs = codec_params.n_frames
+        .and_then(|frames| Some(frames as f64 / sample_rate as f64))
+        .unwrap_or(0.0);
+
+    let mut out = serde_json::Map::new();
+    out.insert("sampleRate".to_string(), serde_json::json!(sample_rate));
+    out.insert("channels".to_string(), serde_json::json!(channels));
+    out.insert("durationSecs".to_string(), serde_json::json!(duration_secs));
+
+    to_value(&out).map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
 pub fn read_flo_metadata(flo_bytes: &[u8]) -> Result<JsValue, JsValue> {
     match crate::get_metadata(flo_bytes) {
         Ok(metadata) => serde_wasm_bindgen::to_value(&metadata)
             .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e))),
         Err(e) => Err(JsValue::from_str(&format!("{}", e))),
     }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn update_flo_metadata(flo_bytes: &[u8], metadata: JsValue) -> Result<Vec<u8>, JsValue> {
+    crate::update_metadata_no_reencode(flo_bytes, metadata)
+        .map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn strip_flo_metadata(flo_bytes: &[u8]) -> Result<Vec<u8>, JsValue> {
+    crate::strip_metadata_no_reencode(flo_bytes).map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
 /// Check if a flo™ file has metadata
