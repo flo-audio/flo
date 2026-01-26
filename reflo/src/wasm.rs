@@ -1,10 +1,11 @@
+use serde_wasm_bindgen::to_value;
+use std::io::Cursor;
+use symphonia::core::codecs::DecoderOptions;
+use symphonia::core::io::MediaSourceStream;
+use symphonia::default::get_probe;
+
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
-use symphonia::core::io::MediaSourceStream;
-use symphonia::core::codecs::DecoderOptions;
-use symphonia::default::get_probe;
-use std::io::Cursor;
-use serde_wasm_bindgen::to_value;
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
@@ -61,7 +62,7 @@ pub fn get_audio_file_info(audio_bytes: &[u8]) -> Result<JsValue, JsValue> {
             &Default::default(),
             mss,
             &Default::default(),
-            &DecoderOptions::default(),
+            &MetadataOptions::default(),
         )
         .map_err(|e| JsValue::from_str(&format!("Symphonia error: {}", e)))?;
 
@@ -75,7 +76,8 @@ pub fn get_audio_file_info(audio_bytes: &[u8]) -> Result<JsValue, JsValue> {
     // Basic fields
     let sample_rate = codec_params.sample_rate.unwrap_or(0);
     let channels = codec_params.channels.map(|c| c.count()).unwrap_or(0) as u8;
-    let duration_secs = codec_params.n_frames
+    let duration_secs = codec_params
+        .n_frames
         .and_then(|frames| Some(frames as f64 / sample_rate as f64))
         .unwrap_or(0.0);
 
