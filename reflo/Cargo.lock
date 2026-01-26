@@ -202,8 +202,6 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 [[package]]
 name = "libflo-audio"
 version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d6f48c607f72332f0d77a9ed1e6ae05067fdc48874cecbe10da7c8c29e60208"
 dependencies = [
  "console_error_panic_hook",
  "js-sys",
@@ -305,6 +303,7 @@ dependencies = [
  "js-sys",
  "libflo-audio",
  "serde",
+ "serde-wasm-bindgen",
  "serde_json",
  "symphonia",
  "wasm-bindgen",

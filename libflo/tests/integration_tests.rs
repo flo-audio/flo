@@ -59,7 +59,7 @@ fn test_info() {
     assert_eq!(file_info.sample_rate, sample_rate);
     assert_eq!(file_info.channels, channels);
     assert_eq!(file_info.bit_depth, 24);
-    assert_eq!(file_info.total_frames, 3);
+    assert_eq!(file_info.total_frames, 144000);
     assert!(file_info.crc_valid);
     assert!(file_info.compression_ratio > 1.0);
 }

@@ -28,185 +28,30 @@ pub fn decode_flo_to_wav(flo_bytes: &[u8]) -> Result<Vec<u8>, JsValue> {
 #[wasm_bindgen]
 pub fn decode_flo_to_samples(flo_bytes: &[u8]) -> Result<JsValue, JsValue> {
     match crate::decode_to_samples(flo_bytes) {
-        Ok((samples, sample_rate, channels)) => {
-            // Create a JS object with the results
-            let obj = js_sys::Object::new();
-            js_sys::Reflect::set(
-                &obj,
-                &JsValue::from_str("samples"),
-                &js_sys::Float32Array::from(&samples[..]).into(),
-            )?;
-            js_sys::Reflect::set(
-                &obj,
-                &JsValue::from_str("sampleRate"),
-                &JsValue::from_f64(sample_rate as f64),
-            )?;
-            js_sys::Reflect::set(
-                &obj,
-                &JsValue::from_str("channels"),
-                &JsValue::from_f64(channels as f64),
-            )?;
-            Ok(obj.into())
-        }
+        Ok(samples) => serde_wasm_bindgen::to_value(&samples)
+            .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e))),
         Err(e) => Err(JsValue::from_str(&e.to_string())),
     }
 }
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
-pub struct FloInfo {
-    version: String,
-    sample_rate: u32,
-    channels: u8,
-    bit_depth: u8,
-    duration_secs: f32,
-    total_frames: u64,
-    file_size: usize,
-    compression_ratio: f32,
-    crc_valid: bool,
-    is_lossy: bool,
-    lossy_quality: u8,
-}
-
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen]
-impl FloInfo {
-    #[wasm_bindgen(getter)]
-    pub fn version(&self) -> String {
-        self.version.clone()
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn sample_rate(&self) -> u32 {
-        self.sample_rate
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn channels(&self) -> u8 {
-        self.channels
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn bit_depth(&self) -> u8 {
-        self.bit_depth
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn duration_secs(&self) -> f32 {
-        self.duration_secs
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn total_frames(&self) -> u64 {
-        self.total_frames
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn file_size(&self) -> usize {
-        self.file_size
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn compression_ratio(&self) -> f32 {
-        self.compression_ratio
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn crc_valid(&self) -> bool {
-        self.crc_valid
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn is_lossy(&self) -> bool {
-        self.is_lossy
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn lossy_quality(&self) -> u8 {
-        self.lossy_quality
-    }
-}
-
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen]
-pub fn get_flo_file_info(flo_bytes: &[u8]) -> Result<FloInfo, JsValue> {
-    let info = crate::get_flo_info(flo_bytes).map_err(|e| JsValue::from_str(&e.to_string()))?;
-
-    Ok(FloInfo {
-        version: info.version,
-        sample_rate: info.sample_rate,
-        channels: info.channels,
-        bit_depth: info.bit_depth,
-        duration_secs: info.duration_secs as f32,
-        total_frames: info.total_frames,
-        file_size: info.file_size,
-        compression_ratio: info.compression_ratio as f32,
-        crc_valid: info.crc_valid,
-        is_lossy: info.is_lossy,
-        lossy_quality: info.lossy_quality,
-    })
-}
-
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen]
-pub fn get_audio_file_info(audio_bytes: &[u8]) -> Result<JsValue, JsValue> {
-    match crate::get_audio_info(audio_bytes) {
-        Ok(info) => {
-            let obj = js_sys::Object::new();
-            js_sys::Reflect::set(
-                &obj,
-                &JsValue::from_str("sampleRate"),
-                &JsValue::from_f64(info.sample_rate as f64),
-            )?;
-            js_sys::Reflect::set(
-                &obj,
-                &JsValue::from_str("channels"),
-                &JsValue::from_f64(info.channels as f64),
-            )?;
-            js_sys::Reflect::set(
-                &obj,
-                &JsValue::from_str("durationSecs"),
-                &JsValue::from_f64(info.duration_secs as f64),
-            )?;
-            Ok(obj.into())
-        }
+pub fn get_flo_info(flo_bytes: &[u8]) -> Result<JsValue, JsValue> {
+    match crate::get_flo_info(flo_bytes) {
+        Ok(info) => serde_wasm_bindgen::to_value(&info)
+            .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e))),
         Err(e) => Err(JsValue::from_str(&e.to_string())),
     }
 }
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
-pub fn get_flo_metadata_json(flo_bytes: &[u8]) -> Result<String, JsValue> {
+pub fn read_flo_metadata(flo_bytes: &[u8]) -> Result<JsValue, JsValue> {
     match crate::get_metadata(flo_bytes) {
-        Ok(Some(meta)) => {
-            serde_json::to_string(&meta).map_err(|e| JsValue::from_str(&e.to_string()))
-        }
-        Ok(None) => Ok("null".to_string()),
-        Err(e) => Err(JsValue::from_str(&e.to_string())),
+        Ok(metadata) => serde_wasm_bindgen::to_value(&metadata)
+            .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e))),
+        Err(e) => Err(JsValue::from_str(&format!("{}", e))),
     }
-}
-
-/// Update metadata in a flo™ file WITHOUT re-encoding audio!
-/// This is instant because flo™ stores metadata in a separate chunk.
-///
-/// # Arguments
-/// * `flo_bytes` - Original flo™ file bytes
-/// * `metadata` - JavaScript object with metadata fields
-///
-/// # Returns
-/// New flo™ file bytes with updated metadata
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen]
-pub fn update_flo_metadata(flo_bytes: &[u8], metadata: JsValue) -> Result<Vec<u8>, JsValue> {
-    crate::update_metadata_no_reencode(flo_bytes, metadata)
-        .map_err(|e| JsValue::from_str(&e.to_string()))
-}
-
-/// Strip all metadata from a flo™ file WITHOUT re-encoding audio!
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen]
-pub fn strip_flo_metadata(flo_bytes: &[u8]) -> Result<Vec<u8>, JsValue> {
-    crate::strip_metadata_no_reencode(flo_bytes).map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
 /// Check if a flo™ file has metadata
@@ -214,6 +59,69 @@ pub fn strip_flo_metadata(flo_bytes: &[u8]) -> Result<Vec<u8>, JsValue> {
 #[wasm_bindgen]
 pub fn has_flo_metadata(flo_bytes: &[u8]) -> bool {
     crate::has_metadata(flo_bytes)
+}
+
+/// Compute EBU R128 loudness metrics from audio samples
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn compute_loudness_metrics_reflo(
+    samples: &[f32],
+    channels: u8,
+    sample_rate: u32,
+) -> Result<JsValue, JsValue> {
+    use libflo_audio::core::analysis::compute_ebu_r128_loudness;
+    let metrics = compute_ebu_r128_loudness(samples, channels, sample_rate);
+    serde_wasm_bindgen::to_value(&metrics)
+        .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+}
+
+/// Extract spectral fingerprint from audio samples
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn extract_spectral_fingerprint_reflo(
+    samples: &[f32],
+    channels: u8,
+    sample_rate: u32,
+    fft_size: Option<usize>,
+    hop_size: Option<usize>,
+) -> Result<JsValue, JsValue> {
+    use libflo_audio::core::analysis::extract_spectral_fingerprint;
+    let fingerprint =
+        extract_spectral_fingerprint(samples, channels, sample_rate, fft_size, hop_size);
+    serde_wasm_bindgen::to_value(&fingerprint)
+        .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+}
+
+/// Extract dominant frequencies from spectral fingerprint
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn extract_dominant_frequencies_reflo(
+    fingerprint_js: JsValue,
+    num_frequencies: usize,
+) -> Result<JsValue, JsValue> {
+    use libflo_audio::core::analysis::{extract_dominant_frequencies, SpectralFingerprint};
+
+    let fingerprint: SpectralFingerprint = serde_wasm_bindgen::from_value(fingerprint_js)
+        .map_err(|e| JsValue::from_str(&format!("Deserialization error: {}", e)))?;
+
+    let dominant_freqs = extract_dominant_frequencies(&fingerprint, num_frequencies);
+    serde_wasm_bindgen::to_value(&dominant_freqs)
+        .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+}
+
+/// Extract waveform peaks from audio samples
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn extract_waveform_peaks_reflo(
+    samples: &[f32],
+    channels: u8,
+    sample_rate: u32,
+    peaks_per_second: u32,
+) -> Result<JsValue, JsValue> {
+    use libflo_audio::core::analysis::extract_waveform_peaks;
+    let waveform = extract_waveform_peaks(samples, channels, sample_rate, peaks_per_second);
+    serde_wasm_bindgen::to_value(&waveform)
+        .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
 }
 
 #[cfg(target_arch = "wasm32")]

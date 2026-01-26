@@ -15,7 +15,7 @@ use anyhow::{Context, Result};
 pub use libflo_audio::FloMetadata;
 
 /// Information about a flo™ file
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct FloInfo {
     pub version: String,
     pub sample_rate: u32,
@@ -37,7 +37,7 @@ pub fn get_flo_info(data: &[u8]) -> Result<FloInfo> {
         .read(data)
         .map_err(|e| anyhow::anyhow!("Failed to read flo file: {}", e))?;
 
-    let duration_secs = file.header.total_frames as f64;
+    let duration_secs = file.header.total_frames as f64 / file.header.sample_rate as f64;
     let original_size = ((file.header.total_frames as f64)
         * (file.header.sample_rate as f64)
         * (file.header.channels as f64)

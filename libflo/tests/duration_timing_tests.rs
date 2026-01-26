@@ -1,12 +1,10 @@
-use libflo_audio::{
-    encode, info, Reader,
-};
+use libflo_audio::{encode, info};
 
 #[test]
 fn test_duration_accuracy_regression() {
     let sample_rate = 44100u32;
     let channels = 1u8;
-    
+
     // Test exactly 2 seconds of audio
     let duration_secs = 2.0;
     let expected_samples = (sample_rate as f32 * duration_secs) as usize;
@@ -19,8 +17,7 @@ fn test_duration_accuracy_regression() {
 
     // Total frames should be actual sample count (not frame count)
     assert_eq!(
-        file_info.total_frames,
-        expected_samples as u64,
+        file_info.total_frames, expected_samples as u64,
         "Total frames should match sample count"
     );
 

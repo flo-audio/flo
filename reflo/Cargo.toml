@@ -21,7 +21,7 @@ path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-libflo-audio = { version = "0.1.2" }
+libflo-audio = { path = "../libflo", version = "0.1.2" }
 clap = { version = "4.4", features = ["derive"], optional = true }
 anyhow = "1.0"
 serde = { version = "1.0", features = ["derive"] }
@@ -43,11 +43,12 @@ symphonia = { version = "0.5", features = [
 wasm-bindgen = { version = "0.2", optional = true }
 js-sys = { version = "0.3", optional = true }
 console_error_panic_hook = { version = "0.1", optional = true }
+serde-wasm-bindgen = { version = "0.6", optional = true }
 
 [features]
 default = ["cli"]
 cli = ["dep:clap"]
-wasm = ["dep:wasm-bindgen", "dep:js-sys", "dep:console_error_panic_hook"]
+wasm = ["dep:wasm-bindgen", "dep:js-sys", "dep:console_error_panic_hook", "dep:serde-wasm-bindgen"]
 
 # Speed optimizations
 [profile.release]

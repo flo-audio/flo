@@ -25,3 +25,6 @@ pkg-reflo/
 pkg-libflo/
 node_modules/
 dist/
+
+.codesandbox/
+.vscode/

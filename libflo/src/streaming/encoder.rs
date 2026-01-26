@@ -155,7 +155,11 @@ impl StreamingEncoder {
         output.push(self.channels);
         output.push(self.bit_depth);
         // Calculate total samples across all frames
-        let total_samples: u64 = self.pending_frames.iter().map(|frame| frame.samples as u64).sum();
+        let total_samples: u64 = self
+            .pending_frames
+            .iter()
+            .map(|frame| frame.samples as u64)
+            .sum();
         output.extend_from_slice(&total_samples.to_le_bytes());
         output.push(self.compression_level);
         output.extend_from_slice(&[0u8; 3]); // reserved

@@ -70,9 +70,6 @@ impl Writer {
         // Calculate total samples across all frames
         let total_samples: u64 = frames.iter().map(|frame| frame.frame_samples as u64).sum();
 
-        // Calculate total samples across all frames
-        let total_samples: u64 = frames.iter().map(|frame| frame.frame_samples as u64).sum();
-
         // header
         self.write_header_ex(
             sample_rate,

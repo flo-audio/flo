@@ -45,6 +45,7 @@ pub use metadata::{
 };
 
 pub use analysis::{
-    extract_dominant_frequencies, extract_spectral_fingerprint, extract_waveform_peaks,
-    extract_waveform_rms, spectral_similarity, SpectralFingerprint,
+    compute_ebu_r128_loudness, extract_dominant_frequencies, extract_spectral_fingerprint,
+    extract_waveform_peaks, extract_waveform_rms, spectral_similarity, LoudnessMetrics,
+    SpectralFingerprint,
 };
