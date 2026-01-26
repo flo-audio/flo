@@ -1,6 +1,6 @@
 use serde_wasm_bindgen::to_value;
 use std::io::Cursor;
-use symphonia::core::codecs::DecoderOptions;
+use symphonia::core::codecs::MetadataOptions;
 use symphonia::core::io::MediaSourceStream;
 use symphonia::default::get_probe;
 
