@@ -1,4 +1,4 @@
-import { decode_flo_to_samples, get_flo_file_info, get_flo_metadata_json } from '../pkg-reflo/reflo.js';
+import { decode_flo_to_samples, get_flo_info, read_flo_metadata } from '../pkg-reflo/reflo.js';
 import { state } from './state.js';
 import { log, updateStats, showCards, displayMetadata, drawWaveform, populateMetadataEditor } from './ui.js';
 
@@ -8,24 +8,23 @@ import { log, updateStats, showCards, displayMetadata, drawWaveform, populateMet
 export async function decodeFloFile(floBytes) {
     try {
         log('Decoding flo™ file...');
-        
+
         const startTime = performance.now();
-        
-        const fileInfo = get_flo_file_info(floBytes);
-        
-        const { samples, sampleRate, channels } = decode_flo_to_samples(floBytes);
-        
+
+        const fileInfo = await get_flo_info(floBytes);
+        const [samples, sample_rate, channels] = await decode_flo_to_samples(floBytes);
+
         const decodeTime = performance.now() - startTime;
-        
+
         // stash everything
         state.floData = floBytes;
         state.decodedSamples = samples;
-        state.decodedSampleRate = sampleRate;
+        state.decodedSampleRate = sample_rate;
         state.decodedChannels = channels;
         state.fileInfo = fileInfo;
-        
+
         showCards(['result', 'metadata']);
-        
+
         const originalSize = Math.round(fileInfo.duration_secs * fileInfo.sample_rate * fileInfo.channels * 2);
         updateStats({
             sampleRate: fileInfo.sample_rate,
@@ -38,15 +37,15 @@ export async function decodeFloFile(floBytes) {
             lossy: fileInfo.is_lossy,
             quality: fileInfo.lossy_quality
         });
-        
+
         // Draw waveform: show decoded samples
         drawWaveform(samples, samples);
-        
+
         displayMetadata(floBytes);
         populateMetadataEditor(floBytes);
-        
+
         log(`Decoded in ${decodeTime.toFixed(1)}ms (${fileInfo.compression_ratio.toFixed(2)}x compression)`, 'success');
-        
+
     } catch (err) {
         log(`Decoding failed: ${err.message}`, 'error');
         console.error('Decoding error:', err);

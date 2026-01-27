@@ -1,7 +1,7 @@
 use serde_wasm_bindgen::to_value;
 use std::io::Cursor;
-use symphonia::core::meta::MetadataOptions;
 use symphonia::core::io::MediaSourceStream;
+use symphonia::core::meta::MetadataOptions;
 use symphonia::default::get_probe;
 
 #[cfg(target_arch = "wasm32")]

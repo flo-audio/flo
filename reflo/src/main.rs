@@ -490,8 +490,7 @@ fn print_metadata_readable(meta: &FloMetadata) {
         }
     }
 
-    if meta.waveform_data.is_some() {
-        let wd = meta.waveform_data.as_ref().unwrap();
+    if let Some(wd) = meta.waveform_data.as_ref() {
         println!();
         println!("Waveform Data:");
         println!("  Peaks/sec:     {}", wd.peaks_per_second);
