@@ -23,10 +23,18 @@ export async function handleFile(file) {
             const { decodeFloFile } = await import('./decoder.js');
             await decodeFloFile(bytes);
         } else {
-            // --- generic audio file info
+            // generic audio file info
             const info = await get_audio_file_info(bytes);
 
             log(`  Format: ${file.name.split('.').pop().toUpperCase()}`);
+
+            if (!info || typeof info.sampleRate !== 'number' ||
+                typeof info.channels !== 'number' ||
+                typeof info.durationSecs !== 'number') {
+                log(`  Could not read audio info (unsupported format?)`, 'error');
+                return;
+            }
+
             log(`  Sample rate: ${info.sampleRate}Hz`);
             log(`  Channels: ${info.channels}`);
             log(`  Duration: ${info.durationSecs.toFixed(1)}s`);
