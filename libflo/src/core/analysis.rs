@@ -255,10 +255,7 @@ pub fn extract_spectral_fingerprint(
     // Hash samples in chunks to avoid memory issues
     for chunk in samples.chunks(1024) {
         let chunk_bytes = unsafe {
-            std::slice::from_raw_parts(
-                chunk.as_ptr() as *const u8,
-                chunk.len() * std::mem::size_of::<f32>(),
-            )
+            std::slice::from_raw_parts(chunk.as_ptr() as *const u8, std::mem::size_of_val(chunk))
         };
         hasher.update(chunk_bytes);
     }
@@ -346,7 +343,7 @@ pub fn extract_spectral_fingerprint(
 
     // Compute average loudness (simplified RMS to LUFS conversion)
     let rms: f32 = samples.iter().map(|&s| s * s).sum::<f32>() / samples.len() as f32;
-    let avg_loudness = ((-20.0 * (rms + 1e-10).log10()).max(-60.0).min(0.0) + 60.0) as u8;
+    let avg_loudness = ((-20.0 * (rms + 1e-10).log10()).clamp(-60.0, 0.0) + 60.0) as u8;
 
     SpectralFingerprint {
         hash,
