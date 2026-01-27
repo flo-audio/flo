@@ -1,8 +1,8 @@
 use serde_wasm_bindgen::to_value;
 use std::io::Cursor;
+use symphonia::core::codecs::CODEC_TYPE_NULL;
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
-use symphonia::default::get_probe;
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
@@ -56,9 +56,9 @@ pub fn get_audio_file_info(audio_bytes: &[u8]) -> Result<JsValue, JsValue> {
     let owned_bytes = audio_bytes.to_vec();
     let cursor = Cursor::new(owned_bytes);
     let mss = MediaSourceStream::new(Box::new(cursor), Default::default());
-    let probe = get_probe();
 
-    let probed = probe
+    // Use the default probe which should have all formats registered
+    let probed = symphonia::default::get_probe()
         .format(
             &Default::default(),
             mss,
@@ -69,8 +69,10 @@ pub fn get_audio_file_info(audio_bytes: &[u8]) -> Result<JsValue, JsValue> {
 
     let format = probed.format;
     let track = format
-        .default_track()
-        .ok_or_else(|| JsValue::from_str("No default track"))?;
+        .tracks()
+        .iter()
+        .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
+        .ok_or_else(|| JsValue::from_str("No audio track found"))?;
 
     let codec_params = &track.codec_params;
 
@@ -82,12 +84,21 @@ pub fn get_audio_file_info(audio_bytes: &[u8]) -> Result<JsValue, JsValue> {
         .and_then(|frames| Some(frames as f64 / sample_rate as f64))
         .unwrap_or(0.0);
 
-    let mut out = serde_json::Map::new();
-    out.insert("sampleRate".to_string(), serde_json::json!(sample_rate));
-    out.insert("channels".to_string(), serde_json::json!(channels));
-    out.insert("durationSecs".to_string(), serde_json::json!(duration_secs));
+    // Use a simple struct that will serialize to a plain JS object
+    #[derive(serde::Serialize)]
+    struct AudioInfo {
+        sampleRate: u32,
+        channels: u8,
+        durationSecs: f64,
+    }
 
-    to_value(&out).map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+    let info = AudioInfo {
+        sampleRate: sample_rate,
+        channels: channels,
+        durationSecs: duration_secs,
+    };
+
+    to_value(&info).map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -128,7 +139,7 @@ pub fn compute_loudness_metrics_reflo(
     channels: u8,
     sample_rate: u32,
 ) -> Result<JsValue, JsValue> {
-    use libflo_audio::core::analysis::compute_ebu_r128_loudness;
+    use libflo_audio::core::ebu_r128::compute_ebu_r128_loudness;
     let metrics = compute_ebu_r128_loudness(samples, channels, sample_rate);
     serde_wasm_bindgen::to_value(&metrics)
         .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))

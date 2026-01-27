@@ -1,6 +1,7 @@
 pub mod analysis;
 pub mod audio_constants;
 pub mod crc32;
+pub mod ebu_r128;
 pub mod metadata;
 pub mod rice;
 pub mod types;
@@ -18,34 +19,15 @@ pub use rice::{
 pub use types::*;
 
 pub use metadata::{
-    AnimatedCover,
-    BpmChange,
-    CollaborationCredit,
-    Comment,
-    CoverVariant,
-    CoverVariantType,
-    CreatorNote,
-    FloMetadata,
-    KeyChange,
-    LoudnessPoint,
-    Lyrics,
-    Picture,
-    PictureType,
-    Popularimeter,
-    RemixChainEntry,
-    SectionMarker,
-    SectionType,
-    // SYLT support
-    SyncedLyrics,
-    SyncedLyricsContentType,
-    SyncedLyricsLine,
-    UserText,
-    UserUrl,
-    WaveformData,
+    AnimatedCover, BpmChange, CollaborationCredit, Comment, CoverVariant, CoverVariantType,
+    CreatorNote, FloMetadata, KeyChange, LoudnessPoint, Lyrics, Picture, PictureType,
+    Popularimeter, RemixChainEntry, SectionMarker, SectionType, SyncedLyrics,
+    SyncedLyricsContentType, SyncedLyricsLine, UserText, UserUrl, WaveformData,
 };
 
 pub use analysis::{
-    compute_ebu_r128_loudness, extract_dominant_frequencies, extract_spectral_fingerprint,
-    extract_waveform_peaks, extract_waveform_rms, spectral_similarity, LoudnessMetrics,
-    SpectralFingerprint,
+    extract_dominant_frequencies, extract_spectral_fingerprint, extract_waveform_peaks,
+    extract_waveform_rms, spectral_similarity, SpectralFingerprint,
 };
+
+pub use ebu_r128::{compute_ebu_r128_loudness, LoudnessMetrics};

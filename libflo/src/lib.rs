@@ -256,7 +256,7 @@ fn add_analysis_data_if_missing(
     // Add loudness metrics if not present
     if flo_metadata.loudness_profile.is_empty() {
         let loudness_metrics =
-            core::analysis::compute_ebu_r128_loudness(samples, channels, sample_rate);
+            core::ebu_r128::compute_ebu_r128_loudness(samples, channels, sample_rate);
 
         // Convert loudness metrics to LoudnessPoint format
         let loudness_point = core::metadata::LoudnessPoint {
@@ -980,92 +980,6 @@ pub fn extract_waveform_rms_to_struct(
 ) -> core::metadata::WaveformData {
     let peaks_per_second = peaks_per_second.unwrap_or(50);
     core::analysis::extract_waveform_rms(samples, channels, sample_rate, peaks_per_second)
-}
-
-/// Extract waveform peaks from audio samples
-///
-/// # Arguments
-/// * `samples` - Interleaved audio samples (f32, -1.0 to 1.0)
-/// * `sample_rate` - Sample rate in Hz (e.g., 44100)
-/// * `channels` - Number of audio channels (1 or 2)
-/// * `peaks_per_second` - Number of peak values per second (default: 50)
-///
-/// # Returns
-/// JavaScript object with waveform data:
-/// ```javascript
-/// {
-///   peaks_per_second: number,
-///   peaks: Float32Array,
-///   channels: number
-/// }
-/// ```
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen]
-pub fn extract_waveform_peaks(
-    samples: &[f32],
-    sample_rate: u32,
-    channels: u8,
-    peaks_per_second: Option<u32>,
-) -> Result<JsValue, JsValue> {
-    let waveform =
-        extract_waveform_peaks_to_struct(samples, sample_rate, channels, peaks_per_second);
-
-    // Convert to JavaScript object
-    let peaks_array = js_sys::Float32Array::from(&waveform.peaks[..]);
-    let obj = js_sys::Object::new();
-
-    js_sys::Reflect::set(
-        &obj,
-        &JsValue::from_str("peaks_per_second"),
-        &JsValue::from_f64(waveform.peaks_per_second as f64),
-    )?;
-    js_sys::Reflect::set(&obj, &JsValue::from_str("peaks"), &peaks_array)?;
-    js_sys::Reflect::set(
-        &obj,
-        &JsValue::from_str("channels"),
-        &JsValue::from_f64(waveform.channels as f64),
-    )?;
-
-    Ok(obj.into())
-}
-
-/// Extract waveform RMS from audio samples
-///
-/// # Arguments
-/// * `samples` - Interleaved audio samples (f32, -1.0 to 1.0)
-/// * `sample_rate` - Sample rate in Hz (e.g., 44100)
-/// * `channels` - Number of audio channels (1 or 2)
-/// * `peaks_per_second` - Number of RMS values per second (default: 50)
-///
-/// # Returns
-/// JavaScript object with waveform data
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen]
-pub fn extract_waveform_rms(
-    samples: &[f32],
-    sample_rate: u32,
-    channels: u8,
-    peaks_per_second: Option<u32>,
-) -> Result<JsValue, JsValue> {
-    let waveform = extract_waveform_rms_to_struct(samples, sample_rate, channels, peaks_per_second);
-
-    // Convert to JavaScript object
-    let peaks_array = js_sys::Float32Array::from(&waveform.peaks[..]);
-    let obj = js_sys::Object::new();
-
-    js_sys::Reflect::set(
-        &obj,
-        &JsValue::from_str("peaks_per_second"),
-        &JsValue::from_f64(waveform.peaks_per_second as f64),
-    )?;
-    js_sys::Reflect::set(&obj, &JsValue::from_str("peaks"), &peaks_array)?;
-    js_sys::Reflect::set(
-        &obj,
-        &JsValue::from_str("channels"),
-        &JsValue::from_f64(waveform.channels as f64),
-    )?;
-
-    Ok(obj.into())
 }
 
 /// Extract spectral fingerprint from audio samples

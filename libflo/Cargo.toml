@@ -25,6 +25,7 @@ rmp-serde = "1.3"
 serde_bytes = "0.11"
 # I would make this from scratch, but I don't hate myself :P
 rustfft = "6.2"
+blake3 = "1.5"
 
 [dependencies.js-sys]
 version = "0.3"

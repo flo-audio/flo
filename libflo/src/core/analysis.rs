@@ -1,175 +1,28 @@
 //! Audio analysis functions for flo™ codec
 
 use crate::core::metadata::WaveformData;
-use serde::{Deserialize, Serialize};
-pub type FloSample = f32;
 use rustfft::num_complex::Complex;
 use rustfft::FftDirection;
+use serde::{Deserialize, Serialize};
 
-/// EBU R128 loudness metrics
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LoudnessMetrics {
-    /// Integrated loudness in LUFS (LKFS)
-    pub integrated_lufs: f64,
-    /// Loudness range in LU (LRA)
-    pub loudness_range_lu: f64,
-    /// True peak in dBTP
-    pub true_peak_dbtp: f64,
-    /// Sample peak in dBFS (for reference)
-    pub sample_peak_dbfs: f64,
-}
-
-/// Compute EBU R128 loudness metrics from audio samples
-///
-/// # Arguments
-/// * `samples` - Audio samples (interleaved if multi-channel)
-/// * `channels` - Number of audio channels
-/// * `sample_rate` - Sample rate in Hz
-///
-/// # Returns
-/// `LoudnessMetrics` struct with EBU R128 measurements
-pub fn compute_ebu_r128_loudness(
-    samples: &[FloSample],
-    channels: u8,
-    sample_rate: u32,
-) -> LoudnessMetrics {
-    if samples.is_empty() {
-        return LoudnessMetrics {
-            integrated_lufs: -23.0,
-            loudness_range_lu: 0.0,
-            true_peak_dbtp: -150.0,
-            sample_peak_dbfs: -150.0,
-        };
-    }
-
-    // Constants per EBU R128 spec
-    let gating_threshold = -70.0; // LUFS threshold for gating
-    let _relative_threshold = -10.0; // LU below gated loudness
-    let _min_ms_for_integration = 400; // Minimum duration for valid measurement
-    let block_size = 0.4; // 400ms block size for loudness measurement
-
-    // Calculate samples per block
-    let samples_per_block = (sample_rate as f64 * block_size) as usize;
-
-    // De-interleave samples by channel
-    let samples_per_channel = samples.len() / channels as usize;
-    let mut channel_samples: Vec<Vec<f32>> = Vec::with_capacity(channels as usize);
-    for ch in 0..channels {
-        let mut ch_data = Vec::with_capacity(samples_per_channel);
-        for i in 0..samples_per_channel {
-            let sample_idx = i * channels as usize + ch as usize;
-            if sample_idx < samples.len() {
-                ch_data.push(samples[sample_idx]);
-            }
-        }
-        channel_samples.push(ch_data);
-    }
-
-    // Process each channel
-    let mut channel_loudness = Vec::with_capacity(channels as usize);
-
-    for ch_samples in &channel_samples {
-        let mut block_loudness = Vec::new();
-
-        // Process in blocks
-        let mut pos = 0;
-        while pos + samples_per_block <= ch_samples.len() {
-            let block = &ch_samples[pos..pos + samples_per_block];
-
-            // Compute mean square for block
-            let mean_square: f64 =
-                block.iter().map(|&x| x as f64 * x as f64).sum::<f64>() / block.len() as f64;
-
-            // Convert to LUFS using EBU R128 weighting
-            let loudness_lufs = if mean_square > 0.0 {
-                -0.691 + 10.0 * (mean_square).log10()
-            } else {
-                -150.0 // Very low level
-            };
-
-            block_loudness.push(loudness_lufs);
-            pos += samples_per_block;
-        }
-
-        // Find absolute peak for this channel
-        let abs_peak = ch_samples.iter().map(|&x| x.abs()).fold(0.0f32, f32::max);
-
-        let peak_dbfs = if abs_peak > 0.0 {
-            20.0 * (abs_peak as f64).log10()
-        } else {
-            -150.0
-        };
-
-        channel_loudness.push((block_loudness, peak_dbfs));
-    }
-
-    // Gating: find blocks above threshold
-    let mut gated_blocks = Vec::<f64>::new();
-    for (ch_loudness, _) in &channel_loudness {
-        for &block_lufs in ch_loudness {
-            if block_lufs > gating_threshold {
-                gated_blocks.push(block_lufs);
-            }
-        }
-    }
-
-    // Calculate integrated loudness
-    let integrated_lufs = if gated_blocks.is_empty() {
-        -23.0 // Default value
-    } else {
-        let gated_mean = gated_blocks.iter().sum::<f64>() / gated_blocks.len() as f64;
-        gated_mean
-    };
-
-    // Calculate loudness range
-    let loudness_range_lu = if gated_blocks.len() < 2 {
-        0.0
-    } else {
-        let mut sorted_blocks = gated_blocks.clone();
-        sorted_blocks.sort_by(|a, b| a.partial_cmp(b).unwrap());
-
-        let lower_percentile = sorted_blocks[(sorted_blocks.len() as f64 * 0.10) as usize];
-        let upper_percentile = sorted_blocks[(sorted_blocks.len() as f64 * 0.95) as usize];
-        upper_percentile - lower_percentile
-    };
-
-    // Find true peak across all channels
-    let true_peak_abs = samples.iter().map(|&x| x.abs()).fold(0.0f32, f32::max);
-
-    let true_peak_dbtp = if true_peak_abs > 0.0 {
-        20.0 * (true_peak_abs as f64).log10()
-    } else {
-        -150.0
-    };
-
-    LoudnessMetrics {
-        integrated_lufs,
-        loudness_range_lu,
-        true_peak_dbtp,
-        sample_peak_dbfs: channel_loudness
-            .iter()
-            .map(|(_, peak)| *peak)
-            .fold(-150.0f64, f64::max),
-    }
-}
+pub type FloSample = f32;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpectralFingerprint {
-    /// FFT window size used for analysis
-    pub fft_size: usize,
-    /// Number of frequency bins (half of FFT size for real signals)
-    pub frequency_bins: usize,
-    /// Frequency resolution in Hz per bin
-    pub frequency_resolution: f64,
-    /// Spectral data (frequency bins x time frames)
-    /// For each frame: magnitudes of frequency components
-    pub spectral_data: Vec<Vec<f32>>,
-    /// Number of audio channels analyzed
-    pub channels: u8,
-    /// Sample rate of the original audio
+    /// BLAKE3 hash of the audio content
+    pub hash: [u8; 32],
+    /// Duration in milliseconds
+    pub duration_ms: u32,
+    /// Sample rate
     pub sample_rate: u32,
-    /// Hop size between consecutive frames (in samples)
-    pub hop_size: usize,
+    /// Number of channels
+    pub channels: u8,
+    /// Peak frequency ranges (8 key frequency bands)
+    pub frequency_peaks: [u8; 8],
+    /// Energy distribution across frequency bands (16 bands)
+    pub energy_profile: [u8; 16],
+    /// Average loudness (LUFS scaled to u8)
+    pub avg_loudness: u8,
 }
 
 /// Extract waveform peaks from audio samples
@@ -371,163 +224,138 @@ pub fn extract_spectral_fingerprint(
     samples: &[FloSample],
     channels: u8,
     sample_rate: u32,
-    fft_size: Option<usize>,
-    hop_size: Option<usize>,
+    _fft_size: Option<usize>,
+    _hop_size: Option<usize>,
 ) -> SpectralFingerprint {
     if samples.is_empty() {
         return SpectralFingerprint {
-            fft_size: 0,
-            frequency_bins: 0,
-            frequency_resolution: 0.0,
-            spectral_data: Vec::new(),
-            channels,
+            hash: [0; 32],
+            duration_ms: 0,
             sample_rate,
-            hop_size: 0,
+            channels,
+            frequency_peaks: [0; 8],
+            energy_profile: [0; 16],
+            avg_loudness: 0,
         };
     }
 
-    let fft_size = fft_size.unwrap_or(2048);
-    let hop_size = hop_size.unwrap_or(fft_size / 2);
+    // Calculate duration - ensure at least 1ms for any non-zero samples
+    let samples_per_channel = samples.len() / channels as usize;
+    let duration_ms = ((samples_per_channel as f64 / sample_rate as f64 * 1000.0) as u32).max(1);
 
-    // Ensure FFT size is power of 2
-    let fft_size = fft_size.next_power_of_two();
-    let frequency_bins = fft_size / 2 + 1; // Only positive frequencies for real signals
-    let frequency_resolution = sample_rate as f64 / fft_size as f64;
+    // Create BLAKE3 hash of audio content + format info
+    use blake3::Hasher;
+    let mut hasher = Hasher::new();
 
-    // Initialize FFT planner and buffer
+    // Include format information in hash
+    hasher.update(&channels.to_le_bytes());
+    hasher.update(&sample_rate.to_le_bytes());
+    hasher.update(&(samples.len() as u32).to_le_bytes());
+
+    // Hash samples in chunks to avoid memory issues
+    for chunk in samples.chunks(1024) {
+        let chunk_bytes = unsafe {
+            std::slice::from_raw_parts(
+                chunk.as_ptr() as *const u8,
+                chunk.len() * std::mem::size_of::<f32>(),
+            )
+        };
+        hasher.update(chunk_bytes);
+    }
+    let hash = hasher.finalize().into();
+
+    // Compact spectral analysis using small FFT
+    let fft_size = 256; // Much smaller than before
     let mut planner = rustfft::FftPlanner::<f32>::new();
     let fft = planner.plan_fft(fft_size, FftDirection::Forward);
-
-    // Pre-allocate buffer for complex samples
     let mut fft_buffer = vec![Complex { re: 0.0, im: 0.0 }; fft_size];
 
-    // Create Hann window for better spectral analysis
-    let mut window = vec![0.0; fft_size];
-    for i in 0..fft_size {
-        window[i] =
-            0.5 * (1.0 - (2.0 * std::f32::consts::PI * i as f32 / (fft_size - 1) as f32).cos());
+    // Take first and middle sections for analysis (quick sampling)
+    let analysis_points = [
+        samples_per_channel / 4,
+        samples_per_channel / 2,
+        samples_per_channel * 3 / 4,
+    ];
+    let mut frequency_bands = [0.0f32; 16];
+    let mut peak_bands = [0u8; 8];
+
+    for &sample_idx in &analysis_points {
+        if sample_idx + fft_size < samples_per_channel {
+            // Extract mono samples for this section
+            for i in 0..fft_size {
+                let mut sample = 0.0;
+                for ch in 0..channels {
+                    let idx = (sample_idx + i) * channels as usize + ch as usize;
+                    if idx < samples.len() {
+                        sample += samples[idx];
+                    }
+                }
+                sample /= channels as f32;
+                fft_buffer[i] = Complex {
+                    re: sample,
+                    im: 0.0,
+                };
+            }
+
+            // Apply FFT
+            fft.process(&mut fft_buffer);
+
+            // Calculate energy in frequency bands (16 bands)
+            for band in 0..16 {
+                let start_bin = band * fft_size / 32;
+                let end_bin = ((band + 1) * fft_size / 32).min(fft_size / 2);
+                let mut energy = 0.0;
+                for bin in start_bin..end_bin {
+                    energy += fft_buffer[bin].re * fft_buffer[bin].re
+                        + fft_buffer[bin].im * fft_buffer[bin].im;
+                }
+                frequency_bands[band] += energy.sqrt();
+            }
+
+            // Track peak frequencies (8 bands)
+            for band in 0..8 {
+                let start_bin = band * fft_size / 16;
+                let end_bin = ((band + 1) * fft_size / 16).min(fft_size / 2);
+
+                let (peak_bin, _) = (start_bin..end_bin)
+                    .map(|bin| {
+                        (
+                            bin,
+                            (fft_buffer[bin].re * fft_buffer[bin].re
+                                + fft_buffer[bin].im * fft_buffer[bin].im)
+                                .sqrt(),
+                        )
+                    })
+                    .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
+                    .unwrap_or((0, 0.0));
+
+                // Convert to scaled u8 (log scale for better distribution)
+                let peak_value = (peak_bin as f32 / fft_size as f32 * 255.0) as u8;
+                peak_bands[band] = peak_bands[band].max(peak_value);
+            }
+        }
     }
 
-    let samples_per_channel = samples.len() / channels as usize;
-    let num_frames = if samples_per_channel >= fft_size {
-        (samples_per_channel - fft_size) / hop_size + 1
+    // Normalize frequency bands to u8
+    let max_energy = frequency_bands.iter().cloned().fold(0.0f32, f32::max);
+    let energy_profile = if max_energy > 0.0 {
+        frequency_bands.map(|e| (e / max_energy * 255.0) as u8)
     } else {
-        1 // At least one frame if we have any samples
+        [0; 16]
     };
 
-    let mut spectral_data = Vec::with_capacity(num_frames);
-
-    // Process each channel separately
-    match channels {
-        1 => {
-            // Mono processing
-            for frame_idx in 0..num_frames {
-                let start_sample = frame_idx * hop_size;
-                let end_sample = (start_sample + fft_size).min(samples_per_channel);
-
-                // Clear buffer and apply windowing
-                fft_buffer.fill(Complex { re: 0.0, im: 0.0 });
-                for i in 0..(end_sample - start_sample) {
-                    fft_buffer[i] = Complex {
-                        re: samples[start_sample + i] * window[i],
-                        im: 0.0,
-                    };
-                }
-
-                // Apply FFT
-                fft.process(&mut fft_buffer);
-
-                // Convert to magnitude spectrum (only positive frequencies)
-                let mut spectrum = Vec::with_capacity(frequency_bins);
-                for i in 0..frequency_bins {
-                    let magnitude = (fft_buffer[i].re * fft_buffer[i].re
-                        + fft_buffer[i].im * fft_buffer[i].im)
-                        .sqrt();
-                    spectrum.push(magnitude);
-                }
-                spectral_data.push(spectrum);
-            }
-        }
-        2 => {
-            // Stereo processing - analyze left channel primarily
-            for frame_idx in 0..num_frames {
-                let start_sample = frame_idx * hop_size;
-                let end_sample = (start_sample + fft_size).min(samples_per_channel);
-
-                fft_buffer.fill(Complex { re: 0.0, im: 0.0 });
-
-                for i in 0..(end_sample - start_sample) {
-                    let sample_idx = (start_sample + i) * 2; // Left channel index
-                    if sample_idx < samples.len() {
-                        fft_buffer[i] = Complex {
-                            re: samples[sample_idx] * window[i],
-                            im: 0.0,
-                        };
-                    }
-                }
-
-                // Apply FFT
-                fft.process(&mut fft_buffer);
-
-                // Convert to magnitude spectrum
-                let mut spectrum = Vec::with_capacity(frequency_bins);
-                for i in 0..frequency_bins {
-                    let magnitude = (fft_buffer[i].re * fft_buffer[i].re
-                        + fft_buffer[i].im * fft_buffer[i].im)
-                        .sqrt();
-                    spectrum.push(magnitude);
-                }
-                spectral_data.push(spectrum);
-            }
-        }
-        _ => {
-            // Multi-channel: mix down to mono
-            for frame_idx in 0..num_frames {
-                let start_sample = frame_idx * hop_size;
-                let end_sample = (start_sample + fft_size).min(samples_per_channel);
-
-                fft_buffer.fill(Complex { re: 0.0, im: 0.0 });
-
-                for i in 0..(end_sample - start_sample) {
-                    // Mix down all channels
-                    let mut mixed_sample = 0.0;
-                    for ch in 0..channels {
-                        let sample_idx = (start_sample + i) * channels as usize + ch as usize;
-                        if sample_idx < samples.len() {
-                            mixed_sample += samples[sample_idx];
-                        }
-                    }
-                    mixed_sample /= channels as f32;
-                    fft_buffer[i] = Complex {
-                        re: mixed_sample * window[i],
-                        im: 0.0,
-                    };
-                }
-
-                // Apply FFT
-                fft.process(&mut fft_buffer);
-
-                // Convert to magnitude spectrum
-                let mut spectrum = Vec::with_capacity(frequency_bins);
-                for i in 0..frequency_bins {
-                    let magnitude = (fft_buffer[i].re * fft_buffer[i].re
-                        + fft_buffer[i].im * fft_buffer[i].im)
-                        .sqrt();
-                    spectrum.push(magnitude);
-                }
-                spectral_data.push(spectrum);
-            }
-        }
-    }
+    // Compute average loudness (simplified RMS to LUFS conversion)
+    let rms: f32 = samples.iter().map(|&s| s * s).sum::<f32>() / samples.len() as f32;
+    let avg_loudness = ((-20.0 * (rms + 1e-10).log10()).max(-60.0).min(0.0) + 60.0) as u8;
 
     SpectralFingerprint {
-        fft_size,
-        frequency_bins,
-        frequency_resolution,
-        spectral_data,
-        channels,
+        hash,
+        duration_ms,
         sample_rate,
-        hop_size,
+        channels,
+        frequency_peaks: peak_bands,
+        energy_profile,
+        avg_loudness,
     }
 }
 
@@ -538,33 +366,24 @@ pub fn extract_spectral_fingerprint(
 /// * `num_frequencies` - Number of dominant frequencies to extract per frame
 ///
 /// # Returns
-/// Vector of vectors containing dominant frequencies (Hz) for each frame
+/// Vector of dominant frequencies (Hz) based on peak frequency bands
 pub fn extract_dominant_frequencies(
     fingerprint: &SpectralFingerprint,
     num_frequencies: usize,
 ) -> Vec<Vec<f64>> {
-    let mut dominant_freqs = Vec::with_capacity(fingerprint.spectral_data.len());
+    let num_frequencies = num_frequencies.min(8); // Max 8 bands available
+    let mut dominant_freqs = Vec::with_capacity(1);
+    let mut frame_dominants = Vec::with_capacity(num_frequencies);
 
-    for frame_spectrum in &fingerprint.spectral_data {
-        let mut freq_magnitude_pairs: Vec<(usize, f32)> = frame_spectrum
-            .iter()
-            .enumerate()
-            .map(|(bin_idx, &magnitude)| (bin_idx, magnitude))
-            .collect();
-
-        // Sort by magnitude (descending)
-        freq_magnitude_pairs.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
-
-        // Extract top frequencies
-        let frame_dominants: Vec<f64> = freq_magnitude_pairs
-            .iter()
-            .take(num_frequencies)
-            .map(|(bin_idx, _)| *bin_idx as f64 * fingerprint.frequency_resolution)
-            .collect();
-
-        dominant_freqs.push(frame_dominants);
+    // Convert frequency peaks back to actual frequencies
+    for i in 0..num_frequencies {
+        // Map u8 back to frequency range (0-255 maps to 0Hz to Nyquist)
+        let normalized_freq = fingerprint.frequency_peaks[i] as f64 / 255.0;
+        let frequency = normalized_freq * (fingerprint.sample_rate as f64 / 2.0);
+        frame_dominants.push(frequency);
     }
 
+    dominant_freqs.push(frame_dominants);
     dominant_freqs
 }
 
@@ -580,37 +399,42 @@ pub fn spectral_similarity(
     fingerprint1: &SpectralFingerprint,
     fingerprint2: &SpectralFingerprint,
 ) -> f32 {
-    if fingerprint1.frequency_bins != fingerprint2.frequency_bins {
-        return 0.0; // Incompatible fingerprints
+    // If hashes match, it's the same content
+    let hash_match = fingerprint1.hash == fingerprint2.hash;
+
+    if hash_match {
+        return 1.0;
     }
 
-    let min_frames = fingerprint1
-        .spectral_data
-        .len()
-        .min(fingerprint2.spectral_data.len());
-    if min_frames == 0 {
+    // Basic format compatibility check
+    if fingerprint1.sample_rate != fingerprint2.sample_rate
+        || fingerprint1.channels != fingerprint2.channels
+    {
         return 0.0;
     }
 
-    let mut total_similarity = 0.0;
+    // Compare energy profiles (16 bands)
+    let energy_similarity: f32 = fingerprint1
+        .energy_profile
+        .iter()
+        .zip(fingerprint2.energy_profile.iter())
+        .map(|(a, b)| 1.0 - (*a as f32 - *b as f32).abs() / 255.0)
+        .sum::<f32>()
+        / 16.0;
 
-    for i in 0..min_frames {
-        let spectrum1 = &fingerprint1.spectral_data[i];
-        let spectrum2 = &fingerprint2.spectral_data[i];
+    // Compare frequency peaks (8 bands)
+    let peak_similarity: f32 = fingerprint1
+        .frequency_peaks
+        .iter()
+        .zip(fingerprint2.frequency_peaks.iter())
+        .map(|(a, b)| 1.0 - (*a as f32 - *b as f32).abs() / 255.0)
+        .sum::<f32>()
+        / 8.0;
 
-        // Compute cosine similarity
-        let dot_product: f32 = spectrum1
-            .iter()
-            .zip(spectrum2.iter())
-            .map(|(a, b)| a * b)
-            .sum();
-        let norm1: f32 = spectrum1.iter().map(|x| x * x).sum::<f32>().sqrt();
-        let norm2: f32 = spectrum2.iter().map(|x| x * x).sum::<f32>().sqrt();
+    // Compare loudness
+    let loudness_similarity =
+        1.0 - (fingerprint1.avg_loudness as f32 - fingerprint2.avg_loudness as f32).abs() / 255.0;
 
-        if norm1 > 0.0 && norm2 > 0.0 {
-            total_similarity += dot_product / (norm1 * norm2);
-        }
-    }
-
-    total_similarity / min_frames as f32
+    // Weighted average (energy is most important for similarity)
+    energy_similarity * 0.5 + peak_similarity * 0.3 + loudness_similarity * 0.2
 }
