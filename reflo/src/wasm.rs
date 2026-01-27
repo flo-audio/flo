@@ -53,7 +53,8 @@ pub fn get_flo_info(flo_bytes: &[u8]) -> Result<JsValue, JsValue> {
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 pub fn get_audio_file_info(audio_bytes: &[u8]) -> Result<JsValue, JsValue> {
-    let cursor = Cursor::new(audio_bytes);
+    let owned_bytes = audio_bytes.to_vec();
+    let cursor = Cursor::new(owned_bytes);
     let mss = MediaSourceStream::new(Box::new(cursor), Default::default());
     let probe = get_probe();
 
