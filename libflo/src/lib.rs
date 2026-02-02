@@ -425,6 +425,31 @@ pub fn version() -> String {
     format!("{}.{}", VERSION_MAJOR, VERSION_MINOR)
 }
 
+/// Format time in seconds to MM:SS or H:MM:SS string
+#[wasm_bindgen]
+pub fn format_time(seconds: f64) -> String {
+    if !seconds.is_finite() || seconds < 0.0 {
+        return "0:00".to_string();
+    }
+    
+    let total_secs = seconds.floor() as u64;
+    let hours = total_secs / 3600;
+    let mins = (total_secs % 3600) / 60;
+    let secs = total_secs % 60;
+    
+    if hours > 0 {
+        format!("{}:{:02}:{:02}", hours, mins, secs)
+    } else {
+        format!("{}:{:02}", mins, secs)
+    }
+}
+
+/// Format time in milliseconds to MM:SS or H:MM:SS string
+#[wasm_bindgen]
+pub fn format_time_ms(milliseconds: f64) -> String {
+    format_time(milliseconds / 1000.0)
+}
+
 // streaming decoder wasm api
 
 #[wasm_bindgen]

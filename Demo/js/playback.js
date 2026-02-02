@@ -1,8 +1,21 @@
 import { state } from './state.js';
 import { log } from './ui.js';
+import { 
+    setVisualizerPeaks, 
+    setPlaybackTime, 
+    startVisualization, 
+    stopVisualization, 
+    drawSeekbar, 
+    formatTime 
+} from './visualizer.js';
 
 let currentSource = null;
 let isPlaying = false;
+let startTime = 0;
+let pauseTime = 0;
+let duration = 0;
+let seekbarInterval = null;
+let waveformPeaks = null;
 
 /**
  * Stop any currently playing audio
@@ -17,7 +30,10 @@ export function stopAudio() {
         currentSource = null;
     }
     isPlaying = false;
+    pauseTime = 0;
     updatePlayButton();
+    stopVisualization();
+    stopSeekbarUpdate();
 }
 
 export function isAudioPlaying() {
@@ -50,9 +66,98 @@ function updatePlayButton() {
     }
 }
 
+function startSeekbarUpdate() {
+    stopSeekbarUpdate();
+    
+    const seekbar = document.getElementById('seekbar');
+    const timeDisplay = document.getElementById('timeDisplay');
+    
+    if (!seekbar) return;
+    
+    seekbarInterval = setInterval(() => {
+        if (!isPlaying || !state.audioCtx) return;
+        
+        const currentTime = state.audioCtx.currentTime - startTime + pauseTime;
+        
+        // Update visualizer with current playback time
+        setPlaybackTime(currentTime, duration);
+        
+        drawSeekbar(seekbar, currentTime, duration, waveformPeaks);
+        
+        if (timeDisplay) {
+            timeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`;
+        }
+    }, 50);
+}
+
+function stopSeekbarUpdate() {
+    if (seekbarInterval) {
+        clearInterval(seekbarInterval);
+        seekbarInterval = null;
+    }
+}
+
+/**
+ * Seek to a specific position
+ */
+export function seekTo(time) {
+    if (!state.decodedSamples || !state.decodedSampleRate) return;
+    
+    const wasPlaying = isPlaying;
+    stopAudio();
+    pauseTime = Math.max(0, Math.min(time, duration));
+    
+    if (wasPlaying) {
+        playAudio();
+    } else {
+        // Just update the seekbar
+        const seekbar = document.getElementById('seekbar');
+        const timeDisplay = document.getElementById('timeDisplay');
+        
+        if (seekbar) {
+            drawSeekbar(seekbar, pauseTime, duration, waveformPeaks);
+        }
+        if (timeDisplay) {
+            timeDisplay.textContent = `${formatTime(pauseTime)} / ${formatTime(duration)}`;
+        }
+    }
+}
+
+/**
+ * Handle seekbar click
+ */
+export function handleSeekbarClick(event) {
+    const seekbar = document.getElementById('seekbar');
+    if (!seekbar || duration <= 0) return;
+    
+    const rect = seekbar.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const ratio = x / rect.width;
+    const time = ratio * duration;
+    
+    seekTo(time);
+}
+
+/**
+ * Set waveform data for seekbar and visualizer
+ * @param {Array|Object} peaks - Array of peaks or waveformData object from WASM
+ */
+export function setWaveformPeaks(peaks) {
+    // Handle both raw array and waveformData object from WASM
+    if (peaks?.peaks) {
+        waveformPeaks = Array.from(peaks.peaks);
+        setVisualizerPeaks(peaks);
+    } else if (Array.isArray(peaks)) {
+        waveformPeaks = peaks;
+        setVisualizerPeaks({ peaks, peaks_per_second: 50 });
+    } else {
+        waveformPeaks = null;
+        setVisualizerPeaks(null);
+    }
+}
+
 // make noise happen
 export function playAudio() {
-
     if (!state.decodedSamples || !state.decodedSampleRate) {
         log('No audio to play', 'error');
         return;
@@ -73,6 +178,7 @@ export function playAudio() {
     const sampleRate = state.decodedSampleRate;
     const channels = state.decodedChannels || 1;
     const length = Math.floor(samples.length / channels);
+    duration = length / sampleRate;
 
     const buffer = state.audioCtx.createBuffer(channels, length, sampleRate);
 
@@ -84,6 +190,7 @@ export function playAudio() {
         }
     }
 
+    // Set up audio graph (no analyser needed - using pre-computed peaks)
     currentSource = state.audioCtx.createBufferSource();
     currentSource.buffer = buffer;
     currentSource.connect(state.audioCtx.destination);
@@ -91,13 +198,29 @@ export function playAudio() {
     currentSource.onended = () => {
         isPlaying = false;
         currentSource = null;
+        pauseTime = 0;
         updatePlayButton();
+        stopVisualization();
+        stopSeekbarUpdate();
+        
+        // Final seekbar update
+        const seekbar = document.getElementById('seekbar');
+        const timeDisplay = document.getElementById('timeDisplay');
+        if (seekbar) drawSeekbar(seekbar, duration, duration, waveformPeaks);
+        if (timeDisplay) timeDisplay.textContent = `${formatTime(duration)} / ${formatTime(duration)}`;
+        
         log('Playback finished', 'info');
     };
 
-    currentSource.start();
+    // Start from pauseTime offset
+    startTime = state.audioCtx.currentTime;
+    currentSource.start(0, pauseTime);
     isPlaying = true;
     updatePlayButton();
+    
+    // Start visualizations
+    startVisualization();
+    startSeekbarUpdate();
 
     log('Playing audio...', 'success');
 }

@@ -1,21 +1,32 @@
 import init from './pkg-reflo/reflo.js';
 import initLibflo from './pkg-libflo/libflo_audio.js';
+import { initWorker } from './js/codec.js';
 import { state, hasSource } from './js/state.js';
 import { encodeAndUpdateUI, scheduleReencode, scheduleMetadataUpdate } from './js/encoder.js';
 import { generateTestSignal, handleFile as handleFileInternal, startRecording, stopRecording } from './js/audio.js';
 import { log, drawEmptyWaveform, drawWaveform, toggleMetadataEditor, updateStats } from './js/ui.js';
-import { togglePlayback, stopAudio } from './js/playback.js';
+import { togglePlayback, stopAudio, handleSeekbarClick, setWaveformPeaks } from './js/playback.js';
 import { downloadFlo as downloadFloInternal, downloadWav as downloadWavInternal } from './js/download.js';
 import { streamFromFile, playStreamedAudio, stopStreaming, debugCompareDecodeMethods } from './js/streaming.js';
+import { initAnalysis, analyzeAudio, updateAnalysisPanel, hideAnalysisPanel } from './js/analysis.js';
 
 async function initialize() {
     try {
+        // Init WASM for main thread (metadata updates, UI functions)
         await Promise.all([init(), initLibflo()]);
+        
+        // Init worker for heavy encode/decode (background thread)
+        await initWorker();
+        
         log(`flo audio converter ready`, 'success');
         drawEmptyWaveform();
         setupEventListeners();
+        
+        // Try to initialize analysis
+        await initAnalysis();
     } catch (err) {
         log(`Failed to load WASM: ${err.message}`, 'error');
+        console.error(err);
     }
 }
 
@@ -107,6 +118,10 @@ window.playAudio = function() {
 
 window.stopAudio = function() {
     stopAudio();
+};
+
+window.handleSeekbarClick = function(event) {
+    handleSeekbarClick(event);
 };
 
 window.downloadFlo = function() {

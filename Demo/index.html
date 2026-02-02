@@ -139,11 +139,82 @@
             </div>
         </div>
 
+        <!-- Audio Analysis -->
+        <div class="card hidden" id="analysisCard">
+            <div class="card-title">Audio Analysis (EBU R128)</div>
+            <div class="analysis-grid">
+                <div class="analysis-main">
+                    <div class="loudness-meter-container">
+                        <canvas id="loudnessMeter" height="50"></canvas>
+                    </div>
+                    <div class="analysis-values">
+                        <div class="analysis-value">
+                            <span class="analysis-label">Integrated</span>
+                            <span class="analysis-number" id="analysisIntegrated">-</span>
+                        </div>
+                        <div class="analysis-value">
+                            <span class="analysis-label">Range</span>
+                            <span class="analysis-number" id="analysisRange">-</span>
+                        </div>
+                        <div class="analysis-value">
+                            <span class="analysis-label">True Peak</span>
+                            <span class="analysis-number" id="analysisPeak">-</span>
+                        </div>
+                        <div class="analysis-value">
+                            <span class="analysis-label">Level</span>
+                            <span class="analysis-number analysis-category" id="analysisCategory">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="analysis-spectrum">
+                    <div class="spectrum-label">Frequency Distribution</div>
+                    <canvas id="spectrumBars" height="80"></canvas>
+                </div>
+            </div>
+        </div>
+
         <!-- Metadata -->
         <div class="card hidden" id="metadataCard">
             <div class="card-title">Metadata</div>
             <div id="metadataContent" class="metadata-content">
                 <p class="text-muted">No metadata</p>
+            </div>
+        </div>
+
+        <!-- File & Encoding Info -->
+        <div class="card hidden" id="encodingInfoCard">
+            <div class="card-title">File & Encoding Info</div>
+            <div id="encodingInfoContent" class="metadata-content">
+                <div class="encoding-info-grid">
+                    <div class="encoding-info-item">
+                        <span class="meta-label">Original Filename</span>
+                        <span class="meta-value" id="infoFilename">–</span>
+                    </div>
+                    <div class="encoding-info-item">
+                        <span class="meta-label">Encoder Settings</span>
+                        <span class="meta-value" id="infoSettings">–</span>
+                    </div>
+                    <div class="encoding-info-item">
+                        <span class="meta-label">Encoder Version</span>
+                        <span class="meta-value" id="infoVersion">–</span>
+                    </div>
+                    <div class="encoding-info-item">
+                        <span class="meta-label">Encoding Time</span>
+                        <span class="meta-value" id="infoEncodingTime">–</span>
+                    </div>
+                    <div class="encoding-info-item">
+                        <span class="meta-label">Source Format</span>
+                        <span class="meta-value" id="infoSourceFormat">–</span>
+                    </div>
+                    <div class="encoding-info-item">
+                        <span class="meta-label">Last Tag Edit</span>
+                        <span class="meta-value" id="infoTaggingTime">–</span>
+                    </div>
+                    <div class="encoding-info-item">
+                        <span class="meta-label">Encoded By</span>
+                        <span class="meta-value" id="infoEncodedBy">–</span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -190,21 +261,43 @@
             </div>
         </div>
 
-        <!-- Playback -->
+        <!-- Player -->
         <div class="card hidden" id="playbackCard">
-            <div class="card-title">Output</div>
-            <div class="btn-group">
-                <button class="btn btn-primary" id="playBtn" onclick="playAudio()">
+            <div class="card-title">Player</div>
+            
+            <!-- Live Visualizer -->
+            <div class="live-visualizer-container">
+                <canvas id="liveVisualizer" height="80"></canvas>
+            </div>
+            
+            <!-- Seekbar -->
+            <div class="seekbar-container">
+                <canvas id="seekbar" height="40" onclick="handleSeekbarClick(event)"></canvas>
+            </div>
+            
+            <!-- Time Display -->
+            <div class="time-display">
+                <span id="timeDisplay">0:00 / 0:00</span>
+            </div>
+            
+            <!-- Controls -->
+            <div class="player-controls">
+                <button class="btn btn-primary btn-large" id="playBtn" onclick="playAudio()">
                     <svg class="icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                     Play
                 </button>
+                <button class="btn" onclick="stopAudio()">
+                    <svg class="icon" viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="16"/></svg>
+                    Stop
+                </button>
+                <div class="btn-spacer"></div>
                 <button class="btn" id="downloadFloBtn" onclick="downloadFlo()">
                     <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                    Download .flo
+                    .flo
                 </button>
                 <button class="btn" id="downloadWavBtn" onclick="downloadWav()">
                     <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                    Download .wav
+                    .wav
                 </button>
             </div>
         </div>

@@ -1,5 +1,7 @@
 import { state } from './state.js';
 import { get_metadata, get_cover_art, get_synced_lyrics, get_section_markers, get_waveform_data } from '../pkg-libflo/libflo_audio.js';
+import { get_encoding_info } from '../pkg-reflo/reflo.js';
+import { formatTimeMs } from './visualizer.js';
 
 // dom elements (lazy loaded)
 let elements = null;
@@ -14,6 +16,7 @@ function getElements() {
             playbackCard: document.getElementById('playbackCard'),
             metadataCard: document.getElementById('metadataCard'),
             metadataContent: document.getElementById('metadataContent'),
+            encodingInfoCard: document.getElementById('encodingInfoCard'),
         };
         elements.ctx = elements.canvas?.getContext('2d');
     }
@@ -56,11 +59,25 @@ export function updateStats(stats) {
     document.getElementById('statSize').textContent = size;
 }
 
-export function showCards() {
-    const { statsCard, waveformCard, playbackCard } = getElements();
+export function showCards(cardNames = ['result', 'metadata']) {
+    const { statsCard, waveformCard, playbackCard, metadataCard, encodingInfoCard } = getElements();
+    const analysisCard = document.getElementById('analysisCard');
+    
     statsCard?.classList.remove('hidden');
     waveformCard?.classList.remove('hidden');
     playbackCard?.classList.remove('hidden');
+    
+    if (cardNames.includes('metadata')) {
+        metadataCard?.classList.remove('hidden');
+    }
+    
+    if (cardNames.includes('analysis')) {
+        analysisCard?.classList.remove('hidden');
+    }
+    
+    if (cardNames.includes('encodingInfo')) {
+        encodingInfoCard?.classList.remove('hidden');
+    }
 }
 
 /**
@@ -248,7 +265,7 @@ function displayMetadataObject(meta, floData) {
             const lyrics = get_synced_lyrics(floData);
             if (lyrics && lyrics.lines && lyrics.lines.length > 0) {
                 const preview = lyrics.lines.slice(0, 5).map(l => 
-                    `${formatTime(l.start_time)}: ${l.text}`
+                    `${formatTimeMs(l.start_time)}: ${l.text}`
                 ).join('\n');
                 html += `<div class="meta-row"><span class="meta-label">Synced Lyrics</span><pre class="lyrics-preview">${preview}${lyrics.lines.length > 5 ? '\n...' : ''}</pre></div>`;
             }
@@ -259,7 +276,7 @@ function displayMetadataObject(meta, floData) {
             const sections = get_section_markers(floData);
             if (sections && sections.length > 0) {
                 const list = sections.map(s => 
-                    `${formatTime(s.start_time)} - ${s.label || s.section_type}`
+                    `${formatTimeMs(s.start_time)} - ${s.label || s.section_type}`
                 ).join('\n');
                 html += `<div class="meta-row"><span class="meta-label">Sections</span><pre class="sections-list">${list}</pre></div>`;
             }
@@ -276,6 +293,63 @@ function displayMetadataObject(meta, floData) {
         metadataCard.classList.remove('hidden');
     } else {
         metadataCard.classList.add('hidden');
+    }
+}
+
+// display encoding info from flo data
+export function displayEncodingInfo(floData) {
+    const { encodingInfoCard } = getElements();
+    if (!encodingInfoCard) return;
+    
+    try {
+        const info = get_encoding_info(floData);
+        
+        // Update UI elements
+        const setField = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value || '–';
+        };
+        
+        if (info) {
+            setField('infoFilename', info.originalFilename);
+            setField('infoSettings', info.encoderSettings);
+            setField('infoVersion', info.encoderVersion);
+            setField('infoEncodingTime', formatEncodingTime(info.encodingTime));
+            setField('infoSourceFormat', info.sourceFormat);
+            setField('infoTaggingTime', formatEncodingTime(info.taggingTime));
+            setField('infoEncodedBy', info.encodedBy);
+            
+            // Show card if any field has data
+            const hasData = info.originalFilename || info.encoderSettings || 
+                           info.encoderVersion || info.encodingTime || 
+                           info.sourceFormat || info.encodedBy;
+            encodingInfoCard.classList.toggle('hidden', !hasData);
+        } else {
+            encodingInfoCard.classList.add('hidden');
+        }
+    } catch (err) {
+        console.warn('Failed to get encoding info:', err);
+        encodingInfoCard.classList.add('hidden');
+    }
+}
+
+// Format ISO datetime to more readable format
+function formatEncodingTime(isoString) {
+    if (!isoString) return null;
+    try {
+        const date = new Date(isoString);
+        if (isNaN(date.getTime())) return isoString;
+        return date.toLocaleString();
+    } catch {
+        return isoString;
+    }
+}
+
+// hide encoding info card
+export function hideEncodingInfo() {
+    const { encodingInfoCard } = getElements();
+    if (encodingInfoCard) {
+        encodingInfoCard.classList.add('hidden');
     }
 }
 
@@ -336,11 +410,4 @@ export function toggleMetadataEditor() {
 // lil helpers
 function metaRow(label, value) {
     return `<div class="meta-row"><span class="meta-label">${label}</span><span class="meta-value">${value}</span></div>`;
-}
-
-function formatTime(ms) {
-    const secs = Math.floor(ms / 1000);
-    const mins = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${mins}:${s.toString().padStart(2, '0')}`;
 }

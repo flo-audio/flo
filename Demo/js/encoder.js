@@ -1,16 +1,35 @@
-import {
-  encode_audio_to_flo,
-  decode_flo_to_samples,
-  get_flo_info,
-  read_flo_metadata,
-  update_flo_metadata,
-  strip_flo_metadata
-} from '../pkg-reflo/reflo.js';
+import { update_flo_metadata, get_flo_info } from '../pkg-reflo/reflo.js';
+import { encodeAudio } from './codec.js';
 import { state } from './state.js';
 import {
-  log, updateStats, drawWaveform, showCards, displayMetadata,
+  log, updateStats, drawWaveform, showCards, displayMetadata, displayEncodingInfo,
   displayMetadataFromEditor, getMetadataFromEditor, populateMetadataEditor
 } from './ui.js';
+import { analyzeAudio, updateAnalysisPanel, hideAnalysisPanel } from './analysis.js';
+import { setWaveformPeaks } from './playback.js';
+import { drawSeekbar, formatTime } from './visualizer.js';
+
+/**
+ * Extract waveform peaks for seekbar visualization (fallback)
+ */
+function extractPeaks(samples, numPeaks = 200) {
+    const samplesPerPeak = Math.floor(samples.length / numPeaks);
+    const peaks = [];
+    
+    for (let i = 0; i < numPeaks; i++) {
+        let max = 0;
+        const start = i * samplesPerPeak;
+        const end = Math.min(start + samplesPerPeak, samples.length);
+        
+        for (let j = start; j < end; j++) {
+            const val = Math.abs(samples[j]);
+            if (val > max) max = val;
+        }
+        peaks.push(max);
+    }
+    
+    return peaks;
+}
 
 // timers for debouncing (dont spam encodes)
 let reencodeTimer = null;
@@ -84,21 +103,19 @@ export async function encodeAudioFile() {
     const audioBytes = state.audioFileBytes;
     const lossy = state.encodingMode === 'lossy';
     const quality = lossy ? state.lossyQuality / 4.0 : 0.6;
-    const level = 5;
+    const filename = state.audioFileName || 'audio';
 
-    await new Promise(resolve => setTimeout(resolve, 0));
-    const floData = await encode_audio_to_flo(audioBytes, lossy, quality, level);
-    const fileInfo = await get_flo_info(floData);
-    const [samples, sample_rate, channels] = await decode_flo_to_samples(floData);
-    const metadata = await read_flo_metadata(floData);
+    // Use worker for encoding (keeps UI responsive)
+    const result = await encodeAudio(audioBytes.buffer, filename, lossy, quality);
 
     return {
-        floData,
-        decoded: samples,
-        sampleRate: sample_rate,
-        channels,
-        fileInfo,
-        metadata
+        floData: result.floData,
+        decoded: result.samples,
+        sampleRate: result.sampleRate,
+        channels: result.channels,
+        fileInfo: result.fileInfo,
+        metadata: result.metadata,
+        waveformData: result.waveformData
     };
 }
 
@@ -111,7 +128,7 @@ export async function encodeAndUpdateUI() {
     try {
         log('Encoding...', 'info');
         const startTime = performance.now();
-        const { floData, decoded, sampleRate, channels, fileInfo, metadata } = await encodeAudioFile();
+        const { floData, decoded, sampleRate, channels, fileInfo, metadata, waveformData: wfData } = await encodeAudioFile();
         const encodeTime = performance.now() - startTime;
 
         state.floData = floData;
@@ -120,7 +137,7 @@ export async function encodeAndUpdateUI() {
         state.decodedChannels = channels;
         state.fileInfo = fileInfo;
 
-        showCards(['result', 'metadata']);
+        showCards(['result', 'metadata', 'analysis', 'encodingInfo']);
 
         updateStats({
             sampleRate: fileInfo.sample_rate,
@@ -136,10 +153,39 @@ export async function encodeAndUpdateUI() {
 
         drawWaveform(decoded, decoded);
 
+        // Use waveform data from worker or extract as fallback
+        let waveformData = wfData;
+        if (!waveformData?.peaks || waveformData.peaks.length === 0) {
+            const peaks = extractPeaks(decoded);
+            waveformData = { peaks, peaks_per_second: 50 };
+        }
+        
+        setWaveformPeaks(waveformData);
+        
+        // Initialize seekbar display
+        const seekbar = document.getElementById('seekbar');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const duration = fileInfo.duration_secs;
+        if (seekbar) drawSeekbar(seekbar, 0, duration, waveformData.peaks);
+        if (timeDisplay) timeDisplay.textContent = `0:00 / ${formatTime(duration)}`;
+
         if (metadata && Object.keys(metadata).length > 0) {
             displayMetadata(floData);
         } else {
             displayMetadataFromEditor();
+        }
+        
+        // Display encoding info
+        displayEncodingInfo(floData);
+
+        // Run audio analysis in background
+        try {
+            const analysis = await analyzeAudio(decoded, sampleRate, channels);
+            if (analysis) {
+                updateAnalysisPanel(analysis);
+            }
+        } catch (analysisErr) {
+            console.warn('Analysis failed:', analysisErr);
         }
 
         log(`Encoded in ${encodeTime.toFixed(1)}ms (${fileInfo.compression_ratio.toFixed(2)}x compression)`, 'success');

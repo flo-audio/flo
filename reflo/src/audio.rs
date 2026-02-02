@@ -25,6 +25,10 @@ pub struct AudioMetadata {
     pub bpm: Option<f32>,
     // Cover art stored as (mime_type, data)
     pub cover_art: Option<(String, Vec<u8>)>,
+    // Source format (e.g., "MP3", "FLAC", "WAV")
+    pub source_format: Option<String>,
+    // Original filename
+    pub original_filename: Option<String>,
 }
 
 /// Read an audio file and return (samples, sample_rate, channels, metadata)
@@ -75,6 +79,9 @@ fn read_from_source_with_metadata(
 
     // Extract metadata
     let mut metadata = AudioMetadata::default();
+    
+    // Detect source format from extension or codec
+    metadata.source_format = extension.map(|ext| ext.to_uppercase());
 
     // Check metadata from probe result
     if let Some(meta_rev) = probed.metadata.get() {
@@ -94,6 +101,22 @@ fn read_from_source_with_metadata(
         .iter()
         .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
         .context("No audio track found")?;
+        
+    // If we didn't get format from extension, try to detect from codec
+    if metadata.source_format.is_none() {
+        let codec_type = track.codec_params.codec;
+        metadata.source_format = Some(match codec_type {
+            symphonia::core::codecs::CODEC_TYPE_FLAC => "FLAC".to_string(),
+            symphonia::core::codecs::CODEC_TYPE_PCM_S16LE 
+            | symphonia::core::codecs::CODEC_TYPE_PCM_S16BE
+            | symphonia::core::codecs::CODEC_TYPE_PCM_S24LE
+            | symphonia::core::codecs::CODEC_TYPE_PCM_S32LE => "WAV".to_string(),
+            symphonia::core::codecs::CODEC_TYPE_MP3 => "MP3".to_string(),
+            symphonia::core::codecs::CODEC_TYPE_VORBIS => "OGG".to_string(),
+            symphonia::core::codecs::CODEC_TYPE_AAC => "AAC".to_string(),
+            _ => "UNKNOWN".to_string(),
+        });
+    }
 
     let track_id = track.id;
     let sample_rate = track

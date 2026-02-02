@@ -198,7 +198,7 @@ pub fn encode_from_samples(
     options: EncodeOptions,
 ) -> Result<Vec<u8>> {
     // Build metadata - options override source metadata
-    let meta = options.metadata.unwrap_or_else(|| {
+    let mut meta = options.metadata.unwrap_or_else(|| {
         let mut m = FloMetadata::new();
 
         // Start with source metadata
@@ -234,19 +234,37 @@ pub fn encode_from_samples(
 
         m
     });
-
-    // Serialize metadata
-    let metadata_bytes = if meta.title.is_some()
-        || meta.artist.is_some()
-        || meta.album.is_some()
-        || meta.year.is_some()
-        || meta.genre.is_some()
-        || !meta.pictures.is_empty()
-    {
-        meta.to_msgpack().ok()
-    } else {
-        None
+    
+    // Always set encoding info fields
+    meta.flo_encoder_version = Some(format!("reflo {}", env!("CARGO_PKG_VERSION")));
+    
+    // Get current time - use js_sys for WASM, chrono for native
+    #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
+    let encoding_time = {
+        let date = js_sys::Date::new_0();
+        date.to_iso_string().as_string().unwrap_or_default()
     };
+    #[cfg(not(all(target_arch = "wasm32", feature = "wasm")))]
+    let encoding_time = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+    
+    meta.encoding_time = Some(encoding_time);
+    meta.source_format = source_metadata.source_format.or(meta.source_format);
+    meta.original_filename = source_metadata.original_filename.or(meta.original_filename);
+    
+    // Set encoder settings description
+    let settings_desc = if options.lossy || options.bitrate.is_some() {
+        if let Some(br) = options.bitrate {
+            format!("Lossy, target {}kbps", br)
+        } else {
+            format!("Lossy, quality {:.0}%", options.quality * 100.0)
+        }
+    } else {
+        format!("Lossless, level {}", options.level)
+    };
+    meta.encoder_settings = Some(settings_desc);
+
+    // Always serialize metadata since we now have encoding info
+    let metadata_bytes = meta.to_msgpack().ok();
 
     let metadata_data = metadata_bytes.unwrap_or_default();
 

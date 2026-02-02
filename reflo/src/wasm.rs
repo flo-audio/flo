@@ -194,6 +194,42 @@ pub fn extract_waveform_peaks_reflo(
         .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
 }
 
+/// Get encoding information from a flo™ file
+/// Returns { originalFilename, encoderSettings, encoderVersion, encodingTime, sourceFormat, encodedBy }
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn get_encoding_info(flo_bytes: &[u8]) -> Result<JsValue, JsValue> {
+    #[derive(serde::Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct EncodingInfo {
+        original_filename: Option<String>,
+        encoder_settings: Option<String>,
+        encoder_version: Option<String>,
+        encoding_time: Option<String>,
+        source_format: Option<String>,
+        encoded_by: Option<String>,
+        tagging_time: Option<String>,
+    }
+    
+    match crate::get_metadata(flo_bytes) {
+        Ok(Some(meta)) => {
+            let info = EncodingInfo {
+                original_filename: meta.original_filename,
+                encoder_settings: meta.encoder_settings,
+                encoder_version: meta.flo_encoder_version,
+                encoding_time: meta.encoding_time,
+                source_format: meta.source_format,
+                encoded_by: meta.encoded_by,
+                tagging_time: meta.tagging_time,
+            };
+            serde_wasm_bindgen::to_value(&info)
+                .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+        }
+        Ok(None) => Ok(JsValue::NULL),
+        Err(e) => Err(JsValue::from_str(&format!("{}", e))),
+    }
+}
+
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 pub fn validate_flo_file(flo_bytes: &[u8]) -> Result<bool, JsValue> {
