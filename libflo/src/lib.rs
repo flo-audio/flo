@@ -431,12 +431,12 @@ pub fn format_time(seconds: f64) -> String {
     if !seconds.is_finite() || seconds < 0.0 {
         return "0:00".to_string();
     }
-    
+
     let total_secs = seconds.floor() as u64;
     let hours = total_secs / 3600;
     let mins = (total_secs % 3600) / 60;
     let secs = total_secs % 60;
-    
+
     if hours > 0 {
         format!("{}:{:02}:{:02}", hours, mins, secs)
     } else {
