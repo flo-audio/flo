@@ -78,10 +78,10 @@ fn read_from_source_with_metadata(
     let mut format = probed.format;
 
     // Extract metadata
-    let mut metadata = AudioMetadata::default();
-    
-    // Detect source format from extension or codec
-    metadata.source_format = extension.map(|ext| ext.to_uppercase());
+    let mut metadata = AudioMetadata {
+        source_format: extension.map(|ext| ext.to_uppercase()),
+        ..Default::default()
+    };
 
     // Check metadata from probe result
     if let Some(meta_rev) = probed.metadata.get() {
@@ -101,13 +101,13 @@ fn read_from_source_with_metadata(
         .iter()
         .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
         .context("No audio track found")?;
-        
+
     // If we didn't get format from extension, try to detect from codec
     if metadata.source_format.is_none() {
         let codec_type = track.codec_params.codec;
         metadata.source_format = Some(match codec_type {
             symphonia::core::codecs::CODEC_TYPE_FLAC => "FLAC".to_string(),
-            symphonia::core::codecs::CODEC_TYPE_PCM_S16LE 
+            symphonia::core::codecs::CODEC_TYPE_PCM_S16LE
             | symphonia::core::codecs::CODEC_TYPE_PCM_S16BE
             | symphonia::core::codecs::CODEC_TYPE_PCM_S24LE
             | symphonia::core::codecs::CODEC_TYPE_PCM_S32LE => "WAV".to_string(),

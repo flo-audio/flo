@@ -234,10 +234,10 @@ pub fn encode_from_samples(
 
         m
     });
-    
+
     // Always set encoding info fields
     meta.flo_encoder_version = Some(format!("reflo {}", env!("CARGO_PKG_VERSION")));
-    
+
     // Get current time - use js_sys for WASM, chrono for native
     #[cfg(all(target_arch = "wasm32", feature = "wasm"))]
     let encoding_time = {
@@ -246,11 +246,11 @@ pub fn encode_from_samples(
     };
     #[cfg(not(all(target_arch = "wasm32", feature = "wasm")))]
     let encoding_time = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
-    
+
     meta.encoding_time = Some(encoding_time);
     meta.source_format = source_metadata.source_format.or(meta.source_format);
     meta.original_filename = source_metadata.original_filename.or(meta.original_filename);
-    
+
     // Set encoder settings description
     let settings_desc = if options.lossy || options.bitrate.is_some() {
         if let Some(br) = options.bitrate {

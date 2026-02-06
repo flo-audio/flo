@@ -210,7 +210,7 @@ pub fn get_encoding_info(flo_bytes: &[u8]) -> Result<JsValue, JsValue> {
         encoded_by: Option<String>,
         tagging_time: Option<String>,
     }
-    
+
     match crate::get_metadata(flo_bytes) {
         Ok(Some(meta)) => {
             let info = EncodingInfo {
