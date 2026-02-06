@@ -3,7 +3,7 @@
 ## Analysis Functions
 
 - [x] Add spectrum fingerprint analysis function to libflo
-- [x] Add EBU R128 loudness metrics to libflo (integrated loudness LUFS, loudness range LU, true peak dBTP)  
+- [x] Add EBU R128 loudness metrics to libflo (integrated loudness LUFS, loudness range LU, true peak dBTP)
 - [x] Add waveform peaks extraction to libflo/reflo (peaks per second, channels)
 - [x] Auto-add these to metadata on encode
 - [x] Export standalone analysis functions to WASM/JS interface for on-demand use
@@ -22,7 +22,7 @@
 ## Seeking & Playback
 
 - [ ] Add TOC-based seeking for large files (without fully decoding)
-  - `get_toc(flo_data)` - Return TOC entries with timestamp_ms → byte_offset mapping  
+  - `get_toc(flo_data)` - Return TOC entries with timestamp_ms → byte_offset mapping
   - `decode_frame_at(flo_data, frame_index)` - Decode specific frame by index
   - `seek_to_time(flo_data, time_ms)` - Find frame and decode from position
 - [ ] Streaming playback with on-demand frame decoding
