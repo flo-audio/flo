@@ -104,8 +104,7 @@ impl KWeighting {
     #[inline]
     fn process(&mut self, x: f64, ch: usize) -> f64 {
         let y1 = self.shelf[ch].process(x);
-        let y2 = self.hp[ch].process(y1);
-        y2
+        self.hp[ch].process(y1)
     }
 }
 
