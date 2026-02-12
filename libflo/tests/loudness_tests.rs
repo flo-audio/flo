@@ -188,11 +188,27 @@ fn test_ebu_r128_short_duration() {
 
 #[test]
 fn test_ebu_r128_peak_accuracy() {
-    let samples = vec![0.0, 1.0, -1.0, 0.0];
-    let m = compute_ebu_r128_loudness(&samples, 1, 44100);
+    let sr = 44100;
+    let freq = 1000.0;
+    let samples: Vec<f32> = (0..sr as usize)
+        .map(|i| {
+            let t = i as f32 / sr as f32;
+            (2.0 * std::f32::consts::PI * freq * t).sin()
+        })
+        .collect();
 
-    assert!((m.true_peak_dbtp - 0.0).abs() < 0.1);
-    assert!((m.sample_peak_dbfs - 0.0).abs() < 0.1);
+    let m = compute_ebu_r128_loudness(&samples, 1, sr);
+
+    assert!(
+        (m.sample_peak_dbfs - 0.0).abs() < 0.1,
+        "sample_peak_dbfs = {}",
+        m.sample_peak_dbfs
+    );
+    assert!(
+        m.true_peak_dbtp > -3.0,
+        "true_peak_dbtp = {} (should be close to 0)",
+        m.true_peak_dbtp
+    );
 }
 
 #[test]

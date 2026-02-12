@@ -36,4 +36,4 @@
 # Bugs
 
 - [ ] Investigate: some example .flo files may have invalid total_frames (audio_lossless.flo shows total_frames=1)
-- [ ] fix bug with lossy encoded files having broken duration (1:50:00 ish)
+- [X] fix bug with lossy encoded files having broken duration (1:50:00 ish)

@@ -70,13 +70,16 @@ impl Writer {
         // Calculate total samples across all frames
         let total_samples: u64 = frames.iter().map(|frame| frame.frame_samples as u64).sum();
 
+        // total_frames represents duration in seconds (number of 1-second frames)
+        let total_frames = total_samples / sample_rate as u64;
+
         // header
         self.write_header_ex(
             sample_rate,
             channels,
             bit_depth,
             compression_level,
-            total_samples,
+            total_frames,
             data_crc32,
             flags,
             toc_size,

@@ -37,7 +37,7 @@ pub fn get_flo_info(data: &[u8]) -> Result<FloInfo> {
         .read(data)
         .map_err(|e| anyhow::anyhow!("Failed to read flo file: {}", e))?;
 
-    let duration_secs = file.header.total_frames as f64 / file.header.sample_rate as f64;
+    let duration_secs = file.header.total_frames as f64;
     let original_size = ((file.header.total_frames as f64)
         * (file.header.sample_rate as f64)
         * (file.header.channels as f64)

@@ -323,7 +323,7 @@ pub fn extract_spectral_fingerprint(
                                 .sqrt(),
                         )
                     })
-                    .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
+                    .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
                     .unwrap_or((0, 0.0));
 
                 // Convert to scaled u8 (log scale for better distribution)

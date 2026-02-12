@@ -89,7 +89,7 @@ types:
       
       - id: total_frames
         type: u8
-        doc: Total number of frames
+        doc: Duration in seconds (number of 1-second frames)
       
       - id: compression_level
         type: u1

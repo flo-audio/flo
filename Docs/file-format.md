@@ -7,6 +7,7 @@ Technical specification for the flo™ audio format.
 flo™ (Fast Layered Object) is a chunked audio format supporting both lossless and lossy compression.
 
 **Key features:**
+
 - Magic number identification
 - CRC32 integrity verification
 - Fixed-duration frames (1 second default)
@@ -42,32 +43,32 @@ flo™ (Fast Layered Object) is a chunked audio format supporting both lossless 
 
 66 bytes, little-endian:
 
-| Offset | Size | Field | Description |
-|--------|------|-------|-------------|
-| 0 | 4 | `magic` | `FLO!` (0x464C4F21) |
-| 4 | 1 | `version_major` | Format version (1) |
-| 5 | 1 | `version_minor` | Minor version (1) |
-| 6 | 2 | `flags` | Bit flags (see below) |
-| 8 | 4 | `sample_rate` | Hz (44100, 48000, etc.) |
-| 12 | 1 | `channels` | 1=mono, 2=stereo |
-| 13 | 1 | `bit_depth` | 16, 24, or 32 |
-| 14 | 8 | `total_frames` | Number of audio frames |
-| 22 | 1 | `compression_level` | Hint (0-9) |
-| 23 | 3 | `reserved` | Must be 0 |
-| 26 | 4 | `data_crc32` | CRC32 of DATA chunk |
-| 30 | 8 | `header_size` | Size of header (66) |
-| 38 | 8 | `toc_size` | Size of TOC chunk |
-| 46 | 8 | `data_size` | Size of DATA chunk |
-| 54 | 8 | `extra_size` | Size of EXTRA chunk |
-| 62 | 8 | `meta_size` | Size of META chunk |
+| Offset | Size | Field               | Description                                           |
+| ------ | ---- | ------------------- | ----------------------------------------------------- |
+| 0      | 4    | `magic`             | `FLO!` (0x464C4F21)                                   |
+| 4      | 1    | `version_major`     | Format version (1)                                    |
+| 5      | 1    | `version_minor`     | Minor version (1)                                     |
+| 6      | 2    | `flags`             | Bit flags (see below)                                 |
+| 8      | 4    | `sample_rate`       | Hz (44100, 48000, etc.)                               |
+| 12     | 1    | `channels`          | 1=mono, 2=stereo                                      |
+| 13     | 1    | `bit_depth`         | 16, 24, or 32                                         |
+| 14     | 8    | `total_frames`      | Duration in seconds (number of 1-second audio frames) |
+| 22     | 1    | `compression_level` | Hint (0-9)                                            |
+| 23     | 3    | `reserved`          | Must be 0                                             |
+| 26     | 4    | `data_crc32`        | CRC32 of DATA chunk                                   |
+| 30     | 8    | `header_size`       | Size of header (66)                                   |
+| 38     | 8    | `toc_size`          | Size of TOC chunk                                     |
+| 46     | 8    | `data_size`         | Size of DATA chunk                                    |
+| 54     | 8    | `extra_size`        | Size of EXTRA chunk                                   |
+| 62     | 8    | `meta_size`         | Size of META chunk                                    |
 
 ### Flags
 
-| Bit | Meaning |
-|-----|---------|
-| 0 | Lossy mode (0=lossless, 1=lossy) |
-| 8-11 | Lossy quality level (0-4) |
-| Other | Reserved |
+| Bit   | Meaning                          |
+| ----- | -------------------------------- |
+| 0     | Lossy mode (0=lossless, 1=lossy) |
+| 8-11  | Lossy quality level (0-4)        |
+| Other | Reserved                         |
 
 **Quality levels:** 0=Low, 1=Medium, 2=High, 3=VeryHigh, 4=Transparent
 
@@ -79,19 +80,19 @@ Table of contents for seeking.
 
 ### Structure
 
-| Offset | Size | Field | Description |
-|--------|------|-------|-------------|
-| 0 | 4 | `num_entries` | Number of seek points |
-| 4 | 20×N | `entries` | Seek point array |
+| Offset | Size | Field         | Description           |
+| ------ | ---- | ------------- | --------------------- |
+| 0      | 4    | `num_entries` | Number of seek points |
+| 4      | 20×N | `entries`     | Seek point array      |
 
 ### TOC Entry (20 bytes)
 
-| Offset | Size | Field | Description |
-|--------|------|-------|-------------|
-| 0 | 4 | `frame_index` | Frame number (0-based) |
-| 4 | 8 | `byte_offset` | Offset from DATA chunk start |
-| 12 | 4 | `frame_size` | Size in bytes |
-| 16 | 4 | `timestamp_ms` | Time in milliseconds |
+| Offset | Size | Field          | Description                  |
+| ------ | ---- | -------------- | ---------------------------- |
+| 0      | 4    | `frame_index`  | Frame number (0-based)       |
+| 4      | 8    | `byte_offset`  | Offset from DATA chunk start |
+| 12     | 4    | `frame_size`   | Size in bytes                |
+| 16     | 4    | `timestamp_ms` | Time in milliseconds         |
 
 ---
 
@@ -101,22 +102,22 @@ Contains compressed audio frames.
 
 ### Audio Frame
 
-| Field | Size | Description |
-|-------|------|-------------|
-| `frame_type` | 1 | Encoding type (see below) |
-| `frame_samples` | 4 | Sample count |
-| `flags` | 1 | Per-frame flags |
-| `channels` | variable | Channel data array |
+| Field           | Size     | Description               |
+| --------------- | -------- | ------------------------- |
+| `frame_type`    | 1        | Encoding type (see below) |
+| `frame_samples` | 4        | Sample count              |
+| `flags`         | 1        | Per-frame flags           |
+| `channels`      | variable | Channel data array        |
 
 ### Frame Types
 
-| Value | Name | Description |
-|-------|------|-------------|
-| 0 | Silence | No data stored |
-| 1-12 | ALPC | Lossless LPC order 1-12 |
-| 253 | Transform | Lossy MDCT |
-| 254 | Raw | Uncompressed PCM |
-| 255 | Reserved | Future use |
+| Value | Name      | Description             |
+| ----- | --------- | ----------------------- |
+| 0     | Silence   | No data stored          |
+| 1-12  | ALPC      | Lossless LPC order 1-12 |
+| 253   | Transform | Lossy MDCT              |
+| 254   | Raw       | Uncompressed PCM        |
+| 255   | Reserved  | Future use              |
 
 ---
 
@@ -134,16 +135,17 @@ Each channel is prefixed with its size:
 
 Adaptive Linear Predictive Coding for lossless compression.
 
-| Field | Size | Description |
-|-------|------|-------------|
-| `coeff_count` | 1 | Number of LPC coefficients |
-| `predictor_coeffs` | 4×N | i32 coefficients |
-| `shift_bits` | 1 | Dequantization shift |
-| `residual_encoding` | 1 | 0=Rice, 1=Golomb, 2=Raw |
-| `rice_parameter` | 1 | Rice k value (if encoding=0) |
-| `residuals` | variable | Encoded residuals |
+| Field               | Size     | Description                  |
+| ------------------- | -------- | ---------------------------- |
+| `coeff_count`       | 1        | Number of LPC coefficients   |
+| `predictor_coeffs`  | 4×N      | i32 coefficients             |
+| `shift_bits`        | 1        | Dequantization shift         |
+| `residual_encoding` | 1        | 0=Rice, 1=Golomb, 2=Raw      |
+| `rice_parameter`    | 1        | Rice k value (if encoding=0) |
+| `residuals`         | variable | Encoded residuals            |
 
 **Reconstruction:**
+
 ```
 sample[n] = residual[n] + Σ(coeff[i] × sample[n-1-i]) >> shift
 ```
@@ -152,19 +154,21 @@ sample[n] = residual[n] + Σ(coeff[i] × sample[n-1-i]) >> shift
 
 MDCT-based lossy compression.
 
-| Field | Size | Description |
-|-------|------|-------------|
-| `block_size` | 1 | 0=Long(2048), 1=Short(256), 2=Start, 3=Stop |
-| `scale_factors` | 50 | 25 bands × 2 bytes (log-scale u16) |
-| `coeff_length` | 4 | Size of coefficient data |
-| `coefficients` | variable | Sparse RLE i16 values |
+| Field           | Size     | Description                                 |
+| --------------- | -------- | ------------------------------------------- |
+| `block_size`    | 1        | 0=Long(2048), 1=Short(256), 2=Start, 3=Stop |
+| `scale_factors` | 50       | 25 bands × 2 bytes (log-scale u16)          |
+| `coeff_length`  | 4        | Size of coefficient data                    |
+| `coefficients`  | variable | Sparse RLE i16 values                       |
 
 **Scale factor decode:**
+
 ```
 scale = 2^((log_value - 32768) / 256)
 ```
 
 **Coefficient decode:**
+
 ```
 coeff[k] = quantized[k] / scale_factor[bark_band(k)]
 ```
@@ -191,38 +195,38 @@ MessagePack-encoded metadata.
 
 ### Standard Fields (ID3v2.4 compatible)
 
-| Field | Type | ID3 Frame |
-|-------|------|-----------|
-| `title` | string | TIT2 |
-| `artist` | string | TPE1 |
-| `album` | string | TALB |
-| `album_artist` | string | TPE2 |
-| `composer` | string | TCOM |
-| `genre` | string | TCON |
-| `year` | u32 | TYER |
-| `track_number` | u32 | TRCK |
-| `track_total` | u32 | TRCK |
-| `disc_number` | u32 | TPOS |
-| `disc_total` | u32 | TPOS |
-| `bpm` | u32 | TBPM |
-| `key` | string | TKEY |
-| `isrc` | string | TSRC |
-| `lyrics` | string | USLT |
-| `comments` | array | COMM |
-| `pictures` | array | APIC |
+| Field          | Type   | ID3 Frame |
+| -------------- | ------ | --------- |
+| `title`        | string | TIT2      |
+| `artist`       | string | TPE1      |
+| `album`        | string | TALB      |
+| `album_artist` | string | TPE2      |
+| `composer`     | string | TCOM      |
+| `genre`        | string | TCON      |
+| `year`         | u32    | TYER      |
+| `track_number` | u32    | TRCK      |
+| `track_total`  | u32    | TRCK      |
+| `disc_number`  | u32    | TPOS      |
+| `disc_total`   | u32    | TPOS      |
+| `bpm`          | u32    | TBPM      |
+| `key`          | string | TKEY      |
+| `isrc`         | string | TSRC      |
+| `lyrics`       | string | USLT      |
+| `comments`     | array  | COMM      |
+| `pictures`     | array  | APIC      |
 
 ### flo™ Extensions
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `section_markers` | array | Intro/verse/chorus markers |
-| `bpm_map` | array | Tempo changes |
-| `key_changes` | array | Key signature changes |
-| `loudness_profile` | array | LUFS per frame |
-| `waveform_data` | object | Pre-computed peaks |
-| `synced_lyrics` | array | SYLT-style lyrics |
-| `creator_notes` | array | Producer commentary |
-| `animated_cover` | object | GIF/WebP cover |
+| Field              | Type   | Description                |
+| ------------------ | ------ | -------------------------- |
+| `section_markers`  | array  | Intro/verse/chorus markers |
+| `bpm_map`          | array  | Tempo changes              |
+| `key_changes`      | array  | Key signature changes      |
+| `loudness_profile` | array  | LUFS per frame             |
+| `waveform_data`    | object | Pre-computed peaks         |
+| `synced_lyrics`    | array  | SYLT-style lyrics          |
+| `creator_notes`    | array  | Producer commentary        |
+| `animated_cover`   | object | GIF/WebP cover             |
 
 ### Section Marker
 
@@ -260,6 +264,7 @@ MessagePack-encoded metadata.
 The DATA chunk is verified using CRC32 (IEEE 802.3 polynomial).
 
 **Verification:**
+
 1. Read `data_crc32` from header
 2. Compute CRC32 of entire DATA chunk
 3. Compare values
@@ -274,9 +279,9 @@ All multi-byte values are **little-endian**.
 
 ## Version History
 
-| Version | Changes |
-|---------|---------|
-| 1.0 | Initial release |
+| Version | Changes         |
+| ------- | --------------- |
+| 1.0     | Initial release |
 
 ---
 

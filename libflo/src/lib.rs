@@ -377,7 +377,7 @@ pub fn info(data: &[u8]) -> Result<AudioInfo, JsValue> {
     let reader = Reader::new();
     let file = reader.read(data).map_err(to_js_err)?;
 
-    let duration_secs = file.header.total_frames as f64 / file.header.sample_rate as f64;
+    let duration_secs = file.header.total_frames as f64;
     let original_size = ((file.header.total_frames as f64)
         * (file.header.sample_rate as f64)
         * (file.header.channels as f64)
