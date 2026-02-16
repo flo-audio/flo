@@ -10,7 +10,7 @@ export function downloadFlo() {
         return;
     }
     
-    const blob = new Blob([state.floData], { type: 'application/octet-stream' });
+    const blob = new Blob([state.floData], { type: 'audio/x-flo' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
