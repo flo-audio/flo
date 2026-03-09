@@ -1,4 +1,4 @@
-# flo™
+# flo
 
 A modern audio codec supporting both **lossless** and **lossy** compression.
 
@@ -14,20 +14,20 @@ A modern audio codec supporting both **lossless** and **lossy** compression.
 - **Mono and stereo** audio support
 - **Multiple sample rates** (44100, 48000, etc.)
 - **WebAssembly support** for browser-based encoding/decoding
-- **CLI converter** for converting MP3, WAV, FLAC, OGG to flo™
+- **CLI converter** for converting MP3, WAV, FLAC, OGG to flo
 - **Streaming decoder** for real-time playback and progressive loading
 - **Rich metadata support** (ID3v2.4 compatible + flo-unique extensions)
 
 ## Compression Comparison
 
 | Mode     | Quality     | Typical Ratio | Equivalent Bitrate | Use Case          |
-|----------|-------------|---------------|--------------------|-------------------|
+| -------- | ----------- | ------------- | ------------------ | ----------------- |
 | Lossy    | Low         | ~30x          | ~48 kbps           | Speech, podcasts  |
 | Lossy    | Medium      | ~10x          | ~128 kbps          | General music     |
 | Lossy    | High        | ~6x           | ~192 kbps          | Quality listening |
 | Lossy    | VeryHigh    | ~4x           | ~256 kbps          | Near-transparent  |
 | Lossy    | Transparent | ~3x           | ~320 kbps          | Archival          |
-| Lossless |      -      | ~2-3x         |          -         | Perfect quality   |
+| Lossless | -           | ~2-3x         | -                  | Perfect quality   |
 
 ## Quick Start
 
@@ -47,7 +47,7 @@ A modern audio codec supporting both **lossless** and **lossy** compression.
 ### CLI Usage
 
 ```bash
-# Convert MP3 to flo™ (lossless)
+# Convert MP3 to flo (lossless)
 flo encode music.mp3 music.flo
 
 # Convert with lossy mode (smaller file)
@@ -59,7 +59,7 @@ flo encode music.mp3 music.flo --bitrate 192
 # With metadata
 flo encode music.mp3 music.flo --title "My Song" --artist "Artist" --album "Album"
 
-# Convert flo™ back to WAV  
+# Convert flo back to WAV
 flo decode music.flo music.wav
 
 # Show file info
@@ -88,6 +88,7 @@ flo validate music.flo
 ```
 
 The web demo supports:
+
 - **Encoding mode selection**: Toggle between lossless and lossy
 - **Quality slider**: Choose from 5 lossy quality levels
 - Generating test signals (sine wave, stereo test, white noise)
@@ -98,11 +99,12 @@ The web demo supports:
 
 ## Metadata
 
-flo™ supports comprehensive metadata in MessagePack format, compatible with ~80% of ID3v2.4 fields plus flo-unique extensions.
+flo supports comprehensive metadata in MessagePack format, compatible with ~80% of ID3v2.4 fields plus flo-unique extensions.
 
 ### Lightning-Fast Metadata Editing
 
 Unlike other formats where editing metadata requires:
+
 - Re-encoding the entire file (lossy formats)
 - Complex block manipulation (FLAC)
 - Hope you have enough padding (MP3)
@@ -112,7 +114,7 @@ FLO's design separates metadata from audio data, allowing instant updates. No re
 ### Standard Fields (ID3v2.4 Compatible)
 
 | Category           | Fields                                                                |
-|--------------------|-----------------------------------------------------------------------|
+| ------------------ | --------------------------------------------------------------------- |
 | **Identification** | title, subtitle, album, track_number/total, disc_number/total, isrc   |
 | **People**         | artist, album_artist, composer, conductor, lyricist, remixer          |
 | **Properties**     | genre, mood, bpm, key, language                                       |
@@ -122,7 +124,7 @@ FLO's design separates metadata from audio data, allowing instant updates. No re
 ### flo-Unique Extensions
 
 | Feature                   | Description                                           |
-|---------------------------|-------------------------------------------------------|
+| ------------------------- | ----------------------------------------------------- |
 | **waveform_data**         | Pre-computed waveform peaks for instant visualization |
 | **section_markers**       | Intro/verse/chorus/bridge/outro timestamps            |
 | **bpm_map**               | Tempo changes throughout the track                    |
@@ -138,17 +140,22 @@ FLO's design separates metadata from audio data, allowing instant updates. No re
 ### JavaScript API
 
 ```javascript
-import { encode, get_metadata, get_cover_art, get_synced_lyrics } from './libflo_audio.js';
+import {
+  encode,
+  get_metadata,
+  get_cover_art,
+  get_synced_lyrics,
+} from "./libflo_audio.js";
 
 // Create metadata
 const metadata = create_metadata_from_object({
-    title: "My Song",
-    artist: "Artist",
-    bpm: 128,
-    section_markers: [
-        { timestamp_ms: 0, section_type: "intro" },
-        { timestamp_ms: 30000, section_type: "verse" }
-    ]
+  title: "My Song",
+  artist: "Artist",
+  bpm: 128,
+  section_markers: [
+    { timestamp_ms: 0, section_type: "intro" },
+    { timestamp_ms: 30000, section_type: "verse" },
+  ],
 });
 
 // Encode with metadata
@@ -162,7 +169,8 @@ const lyrics = get_synced_lyrics(floData);
 
 ## File Format
 
-The flo™ format uses:
+The flo format uses:
+
 - Magic: `FLO!` (0x464C4F21)
 - 66-byte header with chunk offsets
 - CRC32 for integrity
@@ -170,11 +178,13 @@ The flo™ format uses:
 ### Encoding Modes
 
 **Lossless (ALPC)**:
+
 - Frame types 1-12 indicate LPC prediction order
 - Rice-coded residuals for entropy compression
 - Perfect bit-for-bit reconstruction
 
 **Lossy (Transform)**:
+
 - Frame type 253 indicates MDCT-based encoding
 - 2048-sample blocks with 50% overlap (Vorbis window)
 - Psychoacoustic model identifies masked frequencies
@@ -193,7 +203,7 @@ flo/
 │       └── lossy/           # Lossy encoder/decoder (MDCT, psychoacoustic)
 ├── reflo/             # CLI converter tool
 ├── Demo/                    # Web demo with JS frontend
-├── Examples/                # Example flo™ files
+├── Examples/                # Example flo files
 ├── scripts/                 # Build and test scripts
 ├── .github/workflows/       # CI configuration
 └── flo_audio.ksy            # Kaitai Struct specification
@@ -242,10 +252,16 @@ let samples = decoder.decode(&flo_data)?;
 ### JavaScript (WASM)
 
 ```javascript
-import init, { 
-    encode, encode_lossy, encode_transform, encode_with_bitrate,
-    decode, info, validate, get_metadata 
-} from './pkg-libflo/libflo_audio.js';
+import init, {
+  encode,
+  encode_lossy,
+  encode_transform,
+  encode_with_bitrate,
+  decode,
+  info,
+  validate,
+  get_metadata,
+} from "./pkg-libflo/libflo_audio.js";
 
 await init();
 
@@ -257,10 +273,24 @@ const floData = encode(samples, 44100, 2, 16, metadata);
 const floDataLossy = encode_lossy(samples, 44100, 2, 16, 2, metadata);
 
 // Lossy encoding with continuous quality (0.0-1.0)
-const floDataTransform = encode_transform(samples, 44100, 2, 16, 0.55, metadata);
+const floDataTransform = encode_transform(
+  samples,
+  44100,
+  2,
+  16,
+  0.55,
+  metadata
+);
 
 // Lossy encoding with target bitrate (kbps)
-const floDataBitrate = encode_with_bitrate(samples, 44100, 2, 16, 192, metadata);
+const floDataBitrate = encode_with_bitrate(
+  samples,
+  44100,
+  2,
+  16,
+  192,
+  metadata
+);
 
 // Decode (auto-detects mode)
 const decoded = decode(floData);
@@ -278,7 +308,7 @@ const meta = get_metadata(floData);
 For real-time playback and progressive loading:
 
 ```javascript
-import init, { WasmStreamingDecoder } from './pkg-libflo/libflo_audio.js';
+import init, { WasmStreamingDecoder } from "./pkg-libflo/libflo_audio.js";
 
 await init();
 
@@ -295,11 +325,11 @@ console.log(`Sample rate: ${info.sample_rate}, Channels: ${info.channels}`);
 
 // Decode frame-by-frame for streaming playback
 while (true) {
-    const samples = decoder.next_frame();
-    if (samples === null) break;
-    
-    // Schedule samples for audio playback
-    playAudioSamples(samples);
+  const samples = decoder.next_frame();
+  if (samples === null) break;
+
+  // Schedule samples for audio playback
+  playAudioSamples(samples);
 }
 
 // Or decode all available data at once
@@ -321,8 +351,8 @@ decoder.free();
 
 Copyright 2026 NellowTCS
 
-The flo™ codec is licensed under the Apache License, Version 2.0. Check [LICENSE](LICENSE) for more details.
+The flo codec is licensed under the Apache License, Version 2.0. Check [LICENSE](LICENSE) for more details.
 
 ## "Trademark" Notice
 
-"flo" and related branding are (not yet) trademarks of NellowTCS. While the flo™ codec is open-source, the name "flo" and the branding are protected (by common decency). You may not distribute modified versions of this software under the name "flo" without permission.
+"flo" and related branding are (not yet) trademarks of NellowTCS. While the flo codec is open-source, the name "flo" and the branding are protected (by common decency). You may not distribute modified versions of this software under the name "flo" without permission.

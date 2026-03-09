@@ -9,6 +9,7 @@ pub mod lossy;
 pub mod streaming;
 
 mod reader;
+pub mod seeking;
 mod writer;
 
 pub use core::{
@@ -86,7 +87,7 @@ fn to_js_err(e: String) -> JsValue {
 /// * `metadata` - Optional MessagePack metadata
 ///
 /// # Returns
-/// flo™ file as byte array
+/// flo file as byte array
 ///
 /// # Note
 /// For advanced usage with custom compression levels (0-9),
@@ -125,7 +126,7 @@ pub fn encode(
 /// * `metadata` - Optional MessagePack metadata
 ///
 /// # Returns
-/// flo™ file as byte array
+/// flo file as byte array
 ///
 /// # Note
 /// For advanced usage with continuous quality control (0.0-1.0) or custom settings,
@@ -174,7 +175,7 @@ pub fn encode_lossy(
 /// * `metadata` - Optional MessagePack metadata
 ///
 /// # Returns
-/// flo™ file as byte array
+/// flo file as byte array
 #[wasm_bindgen]
 pub fn encode_with_bitrate(
     samples: &[f32],
@@ -286,7 +287,7 @@ fn add_analysis_data_if_missing(
 /// and dispatches to the appropriate decoder.
 ///
 /// # Arguments
-/// * `data` - flo™ file bytes
+/// * `data` - flo file bytes
 ///
 /// # Returns
 /// Interleaved audio samples (f32, -1.0 to 1.0)
@@ -312,10 +313,10 @@ pub fn decode(data: &[u8]) -> Result<Vec<f32>, JsValue> {
     }
 }
 
-/// Decode a lossy flo™ file that uses transform-based compression
+/// Decode a lossy flo file that uses transform-based compression
 ///
 /// # Arguments
-/// * `file` - Parsed flo™ file
+/// * `file` - Parsed flo file
 ///
 /// # Returns
 /// Interleaved audio samples (f32, -1.0 to 1.0)
@@ -349,10 +350,10 @@ fn decode_transform_file(file: &FloFile) -> FloResult<Vec<f32>> {
     Ok(all_samples)
 }
 
-/// Validate flo™ file integrity
+/// Validate flo file integrity
 ///
 /// # Arguments
-/// * `data` - flo™ file bytes
+/// * `data` - flo file bytes
 ///
 /// # Returns
 /// true if file is valid and CRC matches
@@ -374,10 +375,10 @@ pub fn validate(data: &[u8]) -> Result<bool, JsValue> {
     }
 }
 
-/// Get information about a flo™ file
+/// Get information about a flo file
 ///
 /// # Arguments
-/// * `data` - flo™ file bytes
+/// * `data` - flo file bytes
 ///
 /// # Returns
 /// AudioInfo struct with file details
@@ -466,6 +467,75 @@ pub fn format_time(seconds: f64) -> String {
 #[wasm_bindgen]
 pub fn format_time_ms(milliseconds: f64) -> String {
     format_time(milliseconds / 1000.0)
+}
+
+/// Extract TOC (Table of Contents) entries from a flo file
+///
+/// # Returns
+/// Array of TOC entries with frame indices, byte offsets, and timestamps
+#[wasm_bindgen]
+pub fn get_toc(flo_data: &[u8]) -> Result<Vec<JsValue>, JsValue> {
+    let toc = seeking::get_toc(flo_data).map_err(to_js_err)?;
+    let result = toc
+        .into_iter()
+        .map(|entry| {
+            let obj = js_sys::Object::new();
+            js_sys::Reflect::set(&obj, &"frame_index".into(), &entry.frame_index.into()).ok();
+            js_sys::Reflect::set(
+                &obj,
+                &"byte_offset".into(),
+                &(entry.byte_offset as f64).into(),
+            )
+            .ok();
+            js_sys::Reflect::set(&obj, &"frame_size".into(), &entry.frame_size.into()).ok();
+            js_sys::Reflect::set(&obj, &"timestamp_ms".into(), &entry.timestamp_ms.into()).ok();
+            obj.into()
+        })
+        .collect();
+    Ok(result)
+}
+
+/// Decode a single frame by index without decoding the entire file
+///
+/// # Arguments
+/// * `flo_data` - Complete flo file bytes
+/// * `frame_index` - Zero-based frame index
+///
+/// # Returns
+/// Interleaved audio samples for that frame (f32, -1.0 to 1.0)
+#[wasm_bindgen]
+pub fn decode_frame_at(flo_data: &[u8], frame_index: u32) -> Result<Vec<f32>, JsValue> {
+    seeking::decode_frame_at(flo_data, frame_index).map_err(to_js_err)
+}
+
+/// Seek to a specific time in milliseconds
+///
+/// # Arguments
+/// * `flo_data` - Complete flo file bytes
+/// * `time_ms` - Target time in milliseconds
+///
+/// # Returns
+/// Seek result object containing frame index, byte offset, timestamp, sample offset, and next timestamp.
+#[wasm_bindgen]
+pub fn seek_to_time(flo_data: &[u8], time_ms: u32) -> Result<JsValue, JsValue> {
+    let result = seeking::seek_to_time(flo_data, time_ms).map_err(to_js_err)?;
+
+    let obj = js_sys::Object::new();
+    js_sys::Reflect::set(&obj, &"frame_index".into(), &result.frame_index.into())?;
+    js_sys::Reflect::set(
+        &obj,
+        &"byte_offset".into(),
+        &(result.byte_offset as f64).into(),
+    )?;
+    js_sys::Reflect::set(&obj, &"timestamp_ms".into(), &result.timestamp_ms.into())?;
+    js_sys::Reflect::set(&obj, &"sample_offset".into(), &result.sample_offset.into())?;
+    js_sys::Reflect::set(
+        &obj,
+        &"next_timestamp_ms".into(),
+        &result.next_timestamp_ms.into(),
+    )?;
+
+    Ok(obj.into())
 }
 
 // streaming decoder wasm api
@@ -609,6 +679,137 @@ impl Default for WasmStreamingDecoder {
     }
 }
 
+/// Encodes samples frame-by-frame as they arrive, returning encoded frames ready for transmission.
+/// Use this for low-latency streaming encoding where you push samples and pull frames.
+#[wasm_bindgen]
+pub struct WasmStreamingEncoder {
+    inner: StreamingEncoder,
+}
+
+#[wasm_bindgen]
+impl WasmStreamingEncoder {
+    /// Create a new streaming encoder
+    ///
+    /// # Arguments
+    /// * `sample_rate` - Sample rate in Hz (e.g., 44100)
+    /// * `channels` - Number of channels (1 or 2)
+    /// * `bit_depth` - Bits per sample (16, 24, or 32)
+    ///
+    /// # Returns
+    /// New encoder instance
+    #[wasm_bindgen(constructor)]
+    pub fn new(sample_rate: u32, channels: u8, bit_depth: u8) -> Self {
+        Self {
+            inner: StreamingEncoder::new(sample_rate, channels, bit_depth),
+        }
+    }
+
+    /// Set compression level (0-9)
+    ///
+    /// # Arguments
+    /// * `level` - Compression level (0=fast/large, 9=slow/small)
+    ///
+    /// # Returns
+    /// Self for method chaining
+    #[wasm_bindgen]
+    pub fn with_compression(mut self, level: u8) -> Self {
+        self.inner = self.inner.with_compression(level);
+        self
+    }
+
+    /// Push audio samples to the encoder
+    ///
+    /// Samples should be interleaved if multi-channel (e.g., [L0, R0, L1, R1, ...] for stereo).
+    /// Frames are encoded automatically when enough samples accumulate.
+    ///
+    /// # Arguments
+    /// * `samples` - Interleaved f32 audio samples (-1.0 to 1.0)
+    ///
+    /// # Returns
+    /// Error if encoding fails
+    #[wasm_bindgen]
+    pub fn push_samples(&mut self, samples: &[f32]) -> Result<(), JsValue> {
+        self.inner.push_samples(samples).map_err(to_js_err)
+    }
+
+    /// Get the next encoded frame if available
+    ///
+    /// Returns an object with: index, timestamp_ms, data (Uint8Array), samples
+    /// Returns null if no frames are ready yet.
+    ///
+    /// # Returns
+    /// Encoded frame object or null
+    #[wasm_bindgen]
+    pub fn next_frame(&mut self) -> Option<JsValue> {
+        self.inner.next_frame().map(|frame| {
+            let obj = js_sys::Object::new();
+            let _ = js_sys::Reflect::set(&obj, &"index".into(), &frame.index.into());
+            let _ = js_sys::Reflect::set(&obj, &"timestamp_ms".into(), &frame.timestamp_ms.into());
+            let _ = js_sys::Reflect::set(
+                &obj,
+                &"data".into(),
+                &js_sys::Uint8Array::from(&frame.data[..]).into(),
+            );
+            let _ = js_sys::Reflect::set(&obj, &"samples".into(), &frame.samples.into());
+            obj.into()
+        })
+    }
+
+    /// Get number of samples currently buffered
+    ///
+    /// # Returns
+    /// Number of sample frames in buffer
+    #[wasm_bindgen]
+    pub fn pending_samples(&self) -> usize {
+        self.inner.pending_samples()
+    }
+
+    /// Get number of encoded frames ready for transmission
+    ///
+    /// # Returns
+    /// Number of ready frames
+    #[wasm_bindgen]
+    pub fn pending_frames(&self) -> usize {
+        self.inner.pending_frames()
+    }
+
+    /// Flush remaining samples and finalize encoding
+    ///
+    /// Call this when done pushing samples. Encodes any remaining partial frame.
+    /// After this, call finalize() to get the complete flo file.
+    ///
+    /// # Returns
+    /// Error if encoding fails
+    #[wasm_bindgen]
+    pub fn flush(&mut self) -> Result<(), JsValue> {
+        self.inner.flush().map_err(to_js_err).map(|_| ())
+    }
+
+    /// Build a complete flo™ file from all accumulated frames
+    ///
+    /// Call flush() first, then this method to generate the complete file.
+    /// The file will contain all encoded frames with proper table-of-contents.
+    ///
+    /// # Arguments
+    /// * `metadata` - Optional metadata bytes (MessagePack encoded, use create_metadata())
+    ///
+    /// # Returns
+    /// Complete flo file as byte array
+    #[wasm_bindgen]
+    pub fn finalize(&mut self, metadata: Option<Vec<u8>>) -> Result<Vec<u8>, JsValue> {
+        let meta = metadata.unwrap_or_default();
+        self.inner.finalize(&meta).map_err(to_js_err)
+    }
+}
+
+impl Default for WasmStreamingEncoder {
+    fn default() -> Self {
+        Self {
+            inner: StreamingEncoder::new(44100, 2, 16),
+        }
+    }
+}
+
 /// Create metadata from basic fields and serialize to MessagePack
 ///
 /// # Arguments
@@ -644,10 +845,10 @@ pub fn create_metadata_from_object(obj: JsValue) -> Result<Vec<u8>, JsValue> {
         .map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
-/// Extract metadata from a flo™ file
+/// Extract metadata from a flo file
 ///
 /// # Arguments
-/// * `data` - flo™ file bytes
+/// * `data` - flo file bytes
 ///
 /// # Returns
 /// JavaScript object with metadata fields (or null if no metadata)
@@ -667,10 +868,10 @@ pub fn get_metadata(data: &[u8]) -> Result<JsValue, JsValue> {
         .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
 }
 
-/// Get cover art from a flo™ file
+/// Get cover art from a flo file
 ///
 /// # Arguments
-/// * `data` - flo™ file bytes
+/// * `data` - flo file bytes
 ///
 /// # Returns
 /// Object with `mime_type` and `data` (Uint8Array) or null if no cover
@@ -766,7 +967,7 @@ pub fn set_metadata_field(
         .map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
-/// Get synced lyrics from a flo™ file
+/// Get synced lyrics from a flo file
 ///
 /// # Returns
 /// Array of synced lyrics objects or null if none
@@ -790,7 +991,7 @@ pub fn get_synced_lyrics(data: &[u8]) -> Result<JsValue, JsValue> {
         .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
 }
 
-/// Get waveform data from a flo™ file for instant visualization
+/// Get waveform data from a flo file for instant visualization
 ///
 /// # Returns
 /// WaveformData object or null if not present
@@ -813,7 +1014,7 @@ pub fn get_waveform_data(data: &[u8]) -> Result<JsValue, JsValue> {
     }
 }
 
-/// Get section markers from a flo™ file
+/// Get section markers from a flo file
 ///
 /// # Returns
 /// Array of section markers or null if none
@@ -842,11 +1043,11 @@ pub fn get_section_markers(data: &[u8]) -> Result<JsValue, JsValue> {
 /// update metadata without re-encoding audio
 ///
 /// # Arguments
-/// * `flo_data` - Original flo™ file bytes
+/// * `flo_data` - Original flo file bytes
 /// * `new_metadata` - New MessagePack metadata bytes (use create_metadata_*)
 ///
 /// # Returns
-/// New flo™ file with updated metadata
+/// New flo file with updated metadata
 #[wasm_bindgen]
 pub fn update_metadata(flo_data: &[u8], new_metadata: &[u8]) -> Result<Vec<u8>, JsValue> {
     update_metadata_bytes(flo_data, new_metadata).map_err(to_js_err)
@@ -893,49 +1094,49 @@ pub fn update_metadata_bytes(flo_data: &[u8], new_metadata: &[u8]) -> FloResult<
     Ok(result)
 }
 
-/// Replace just the metadata in a flo™ file (convenience function)
+/// Replace just the metadata in a flo file (convenience function)
 ///
 /// Takes a metadata object directly instead of MessagePack bytes.
 ///
 /// # Arguments
-/// * `flo_data` - Original flo™ file bytes
+/// * `flo_data` - Original flo file bytes
 /// * `metadata` - JavaScript metadata object
 ///
 /// # Returns
-/// New flo™ file with updated metadata
+/// New flo file with updated metadata
 #[wasm_bindgen]
 pub fn set_metadata(flo_data: &[u8], metadata: JsValue) -> Result<Vec<u8>, JsValue> {
     let new_meta_bytes = create_metadata_from_object(metadata)?;
     update_metadata(flo_data, &new_meta_bytes)
 }
 
-/// Remove all metadata from a flo™ file
+/// Remove all metadata from a flo file
 ///
 /// # Arguments
-/// * `flo_data` - Original flo™ file bytes
+/// * `flo_data` - Original flo file bytes
 ///
 /// # Returns
-/// New flo™ file with no metadata
+/// New flo file with no metadata
 pub fn strip_metadata_bytes(flo_data: &[u8]) -> FloResult<Vec<u8>> {
     update_metadata_bytes(flo_data, &[])
 }
 
-/// Remove all metadata from a flo™ file
+/// Remove all metadata from a flo file
 ///
 /// # Arguments
-/// * `flo_data` - Original flo™ file bytes
+/// * `flo_data` - Original flo file bytes
 ///
 /// # Returns
-/// New flo™ file with no metadata
+/// New flo file with no metadata
 #[wasm_bindgen]
 pub fn strip_metadata(flo_data: &[u8]) -> Result<Vec<u8>, JsValue> {
     strip_metadata_bytes(flo_data).map_err(to_js_err)
 }
 
-/// Get just the metadata bytes from a flo™ file
+/// Get just the metadata bytes from a flo file
 ///
 /// # Arguments
-/// * `flo_data` - flo™ file bytes
+/// * `flo_data` - flo file bytes
 ///
 /// # Returns
 /// Raw MessagePack metadata bytes (or empty array)
@@ -944,10 +1145,10 @@ pub fn get_metadata_bytes(flo_data: &[u8]) -> Result<Vec<u8>, JsValue> {
     get_metadata_bytes_native(flo_data).map_err(to_js_err)
 }
 
-/// Get just the metadata bytes from a flo™ file
+/// Get just the metadata bytes from a flo file
 ///
 /// # Arguments
-/// * `flo_data` - flo™ file bytes
+/// * `flo_data` - flo file bytes
 ///
 /// # Returns
 /// Raw MessagePack metadata bytes (or empty array)

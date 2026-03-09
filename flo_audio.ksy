@@ -1,12 +1,12 @@
 meta:
   id: flo_audio
-  title: flo™ Audio Format
+  title: flo Audio Format
   file-extension: flo
   endian: le
   license: Apache-2.0
   
 doc: |
-  flo™ (Fast Layered Object): A modern dual-mode audio format
+  flo (Fast Layered Object): A modern dual-mode audio format
   
   Design principles:
   - HEAD contains all chunk offsets (single source of truth)
@@ -348,11 +348,11 @@ types:
             during_performance, video_screen_capture, bright_coloured_fish
             illustration, band_logo, publisher_logo
           
-          VISUALIZATION (flo™-unique):
+          VISUALIZATION (flo-unique):
             waveform_data: {peaks_per_second, peaks: [f32], channels}
             spectrum_fingerprint: bytes
           
-          TIMING & ANALYSIS (flo™-unique):
+          TIMING & ANALYSIS (flo-unique):
             bpm_map: [{timestamp_ms, bpm}, ...]
             key_changes: [{timestamp_ms, key}, ...]
             loudness_profile: [{timestamp_ms, lufs}, ...]
@@ -363,12 +363,12 @@ types:
             intro, verse, pre_chorus, chorus, post_chorus, bridge
             breakdown, drop, buildup, solo, instrumental, outro, silence, other
           
-          CREATOR INFO (flo™-unique):
+          CREATOR INFO (flo-unique):
             creator_notes: [{timestamp_ms?, text}, ...]
             collaboration_credits: [{role, name, timestamp_ms?}, ...]
             remix_chain: [{title, artist, year?, isrc?, relationship}, ...]
           
-          COVERS (flo™-unique):
+          COVERS (flo-unique):
             animated_cover: {mime_type, data, duration_ms?, loop_count?}
             cover_variants: [{variant_type, mime_type, data, description?}, ...]
             artist_signature: Picture (same as pictures entry)
@@ -376,6 +376,6 @@ types:
           COVER VARIANT TYPES:
             standard, explicit, clean, remix, deluxe, limited, vinyl, cassette, digital, other
           
-          flo™-SPECIFIC:
+          flo-SPECIFIC:
             flo_encoder_version, source_format
             custom: {key: value, ...}

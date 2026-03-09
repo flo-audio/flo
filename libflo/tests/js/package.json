@@ -1,0 +1,20 @@
+{
+  "name": "libflo-audio-tests",
+  "version": "0.1.2",
+  "description": "Jest tests for libflo-audio WASM API",
+  "type": "module",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "@testing-library/jest-dom": "^6.1.5"
+  },
+  "dependencies": {
+    "@flo-audio/libflo-audio": "file:../../pkg"
+  }
+}
+

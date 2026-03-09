@@ -190,13 +190,14 @@ impl Writer {
         self.buffer.extend_from_slice(&meta_size.to_le_bytes());
     }
 
-    fn build_toc_chunk(&self, frames: &[Frame], _sample_rate: u32) -> Vec<u8> {
+    fn build_toc_chunk(&self, frames: &[Frame], sample_rate: u32) -> Vec<u8> {
         let mut toc = Vec::new();
 
         // Number of entries (u32 LE)
         toc.extend_from_slice(&(frames.len() as u32).to_le_bytes());
 
         let mut byte_offset = 0u64;
+        let mut cumulative_samples = 0u64;
 
         for (i, frame) in frames.iter().enumerate() {
             let frame_size = frame.byte_size() as u32;
@@ -211,10 +212,12 @@ impl Writer {
             toc.extend_from_slice(&frame_size.to_le_bytes());
 
             // Timestamp in milliseconds (u32 LE)
-            let timestamp_ms = (i as u32) * 1000;
+            // Calculate based on cumulative samples and sample rate
+            let timestamp_ms = (cumulative_samples * 1000 / sample_rate as u64) as u32;
             toc.extend_from_slice(&timestamp_ms.to_le_bytes());
 
             byte_offset += frame_size as u64;
+            cumulative_samples += frame.frame_samples as u64;
         }
 
         toc

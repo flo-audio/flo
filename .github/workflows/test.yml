@@ -10,8 +10,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  test:
-    name: Test libflo
+  test-rust:
+    name: Test libflo (Rust)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -25,5 +25,49 @@ jobs:
         with:
           workspaces: libflo
 
-      - name: Run tests
+      - name: Run Rust tests
         run: cd libflo && cargo test --release --all-features
+
+  test-wasm:
+    name: Test libflo (WASM/Jest)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: libflo
+
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: libflo/tests/js/node_modules
+          key: ${{ runner.os }}-npm-${{ hashFiles('libflo/tests/js/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Build WASM
+        run: cd libflo && wasm-pack build --release --target web
+
+      - name: Install dependencies
+        run: cd libflo/tests/js && npm install
+
+      - name: Run Jest tests
+        run: cd libflo/tests/js && npm test -- --coverage
+
+
