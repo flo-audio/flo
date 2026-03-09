@@ -21,19 +21,19 @@
 
 ## Seeking & Playback
 
-- [X] Add TOC-based seeking for large files (without fully decoding)
+- [x] Add TOC-based seeking for large files (without fully decoding)
   - `get_toc(flo_data)` - Return TOC entries with timestamp_ms → byte_offset mapping
   - `decode_frame_at(flo_data, frame_index)` - Decode specific frame by index
   - `seek_to_time(flo_data, time_ms)` - Find frame and decode from position
-- [X] Streaming playback with on-demand frame decoding
+- [x] Streaming playback with on-demand frame decoding
 
 ## QoL
 
-- [ ] Add CLI tool for file inspection (info, metadata, analysis)
+- [x] Add CLI tool for file inspection (info, metadata, analysis)
 - [ ] Add bulk converter to reflo + web demo (possibly separate page)
-- [X] Add streaming encode support (currently only decode streams) (To clarify, it does exist but needs to be implemented into the web demo and exported to WASM)
+- [x] Add streaming encode support (currently only decode streams) (To clarify, it does exist but needs to be implemented into the web demo and exported to WASM)
 - [ ] Add streaming encode to web demo
-- [ ] Test parity between Rust and Jest and more reflo tests 
+- [ ] Test parity between Rust and Jest and more reflo tests
 - [ ] Add file comparison view (compare original vs encoded)
 
 # Bugs

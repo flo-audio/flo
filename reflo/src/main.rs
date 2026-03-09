@@ -1,6 +1,7 @@
 use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
 use reflo::{EncodeOptions, FloMetadata};
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
@@ -70,6 +71,20 @@ enum Commands {
         #[arg(long)]
         json: bool,
     },
+    /// Analyze audio content (loudness, waveform, spectrum)
+    Analysis {
+        /// Input flo™ file
+        input: PathBuf,
+        /// Show waveform peaks
+        #[arg(short, long)]
+        waveform: bool,
+        /// Show spectral fingerprint
+        #[arg(short, long)]
+        spectrum: bool,
+        /// Output as JSON
+        #[arg(long)]
+        json: bool,
+    },
     /// Validate a flo™ file
     Validate {
         /// Input flo™ file
@@ -119,12 +134,73 @@ fn main() -> Result<()> {
         Commands::Metadata { input, json } => {
             metadata(&input, json)?;
         }
+        Commands::Analysis {
+            input,
+            waveform,
+            spectrum,
+            json,
+        } => {
+            analysis(&input, waveform, spectrum, json)?;
+        }
         Commands::Validate { input } => {
             validate(&input)?;
         }
     }
 
     Ok(())
+}
+
+#[derive(Serialize, Deserialize)]
+struct AnalysisOutput {
+    file_info: FileInfo,
+    loudness: LoudnessOutput,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    waveform: Option<WaveformOutput>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    spectral: Option<SpectralOutput>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct FileInfo {
+    sample_rate: u32,
+    channels: u8,
+    bit_depth: u8,
+    duration_secs: f64,
+    total_samples: u64,
+}
+
+#[derive(Serialize, Deserialize)]
+struct LoudnessOutput {
+    integrated_lufs: f64,
+    loudness_range_lu: f64,
+    true_peak_dbtp: f64,
+    sample_peak_dbfs: f64,
+}
+
+#[derive(Serialize, Deserialize)]
+struct WaveformOutput {
+    peaks_per_second: u32,
+    total_peaks: usize,
+    channels: u8,
+    peak_statistics: Option<PeakStats>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct PeakStats {
+    min: f32,
+    max: f32,
+    average: f32,
+}
+
+#[derive(Serialize, Deserialize)]
+struct SpectralOutput {
+    duration_ms: u32,
+    sample_rate: u32,
+    channels: u8,
+    peak_frequency_bands: Vec<u8>,
+    energy_profile: Vec<u8>,
+    average_loudness: u8,
+    spectral_hash_hex: String,
 }
 
 struct EncodeArgs {
@@ -538,6 +614,191 @@ fn format_time(ms: u64) -> String {
     let secs = secs % 60;
     let ms_rem = ms % 1000;
     format!("{:02}:{:02}.{:03}", mins, secs, ms_rem)
+}
+
+fn analysis(
+    input: &PathBuf,
+    show_waveform: bool,
+    show_spectrum: bool,
+    output_json: bool,
+) -> Result<()> {
+    let flo_data = fs::read(input).context("Failed to read flo™ file")?;
+
+    // Get file info
+    let file_info =
+        reflo::get_flo_info(&flo_data).map_err(|_| anyhow::anyhow!("Invalid flo™ file"))?;
+
+    // Decode directly to samples
+    let (samples, _sample_rate, _channels) =
+        reflo::decode_to_samples(&flo_data).context("Failed to decode flo™ file")?;
+
+    // Loudness Analysis using libflo EBU R128 metrics
+    let loudness = libflo_audio::compute_ebu_r128_loudness(
+        &samples,
+        file_info.channels,
+        file_info.sample_rate,
+    );
+
+    // Prepare waveform data if requested
+    let waveform_data = if show_waveform {
+        let waveform = libflo_audio::extract_waveform_peaks(
+            &samples,
+            file_info.channels,
+            file_info.sample_rate,
+            60, // 60 peaks per second for visualization
+        );
+
+        let peak_stats = if !waveform.peaks.is_empty() {
+            let peak_min = waveform.peaks.iter().copied().fold(f32::INFINITY, f32::min);
+            let peak_max = waveform
+                .peaks
+                .iter()
+                .copied()
+                .fold(f32::NEG_INFINITY, f32::max);
+            let peak_avg = waveform.peaks.iter().sum::<f32>() / waveform.peaks.len() as f32;
+
+            Some(PeakStats {
+                min: peak_min,
+                max: peak_max,
+                average: peak_avg,
+            })
+        } else {
+            None
+        };
+
+        Some(WaveformOutput {
+            peaks_per_second: waveform.peaks_per_second,
+            total_peaks: waveform.peaks.len(),
+            channels: waveform.channels,
+            peak_statistics: peak_stats,
+        })
+    } else {
+        None
+    };
+
+    // Prepare spectral data if requested
+    let spectral_data = if show_spectrum {
+        let fingerprint = libflo_audio::extract_spectral_fingerprint(
+            &samples,
+            file_info.channels,
+            file_info.sample_rate,
+            None,
+            None,
+        );
+
+        let hash_hex = format!(
+            "{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
+            fingerprint.hash[0],
+            fingerprint.hash[1],
+            fingerprint.hash[2],
+            fingerprint.hash[3],
+            fingerprint.hash[4],
+            fingerprint.hash[5],
+            fingerprint.hash[6],
+            fingerprint.hash[7]
+        );
+
+        Some(SpectralOutput {
+            duration_ms: fingerprint.duration_ms,
+            sample_rate: fingerprint.sample_rate,
+            channels: fingerprint.channels,
+            peak_frequency_bands: fingerprint.frequency_peaks.to_vec(),
+            energy_profile: fingerprint.energy_profile.to_vec(),
+            average_loudness: fingerprint.avg_loudness,
+            spectral_hash_hex: hash_hex,
+        })
+    } else {
+        None
+    };
+
+    if output_json {
+        let output = AnalysisOutput {
+            file_info: FileInfo {
+                sample_rate: file_info.sample_rate,
+                channels: file_info.channels,
+                bit_depth: file_info.bit_depth,
+                duration_secs: file_info.duration_secs,
+                total_samples: file_info.total_samples,
+            },
+            loudness: LoudnessOutput {
+                integrated_lufs: loudness.integrated_lufs,
+                loudness_range_lu: loudness.loudness_range_lu,
+                true_peak_dbtp: loudness.true_peak_dbtp,
+                sample_peak_dbfs: loudness.sample_peak_dbfs,
+            },
+            waveform: waveform_data,
+            spectral: spectral_data,
+        };
+
+        let json_str = serde_json::to_string_pretty(&output)
+            .context("Failed to serialize analysis to JSON")?;
+        println!("{}", json_str);
+    } else {
+        println!("Analyzing {}...", input.display());
+        println!();
+
+        println!("File Information");
+        println!("────────────────");
+        println!("  Sample rate: {} Hz", file_info.sample_rate);
+        println!("  Channels:    {}", file_info.channels);
+        println!("  Bit depth:   {} bits", file_info.bit_depth);
+        println!("  Duration:    {:.2}s", file_info.duration_secs);
+        println!("  Total samples: {}", file_info.total_samples);
+        println!();
+
+        println!("Loudness Metrics (EBU R128)");
+        println!("────────────────────────────");
+        println!(
+            "  Integrated loudness: {:.2} LUFS",
+            loudness.integrated_lufs
+        );
+        println!(
+            "  Loudness range:      {:.2} LU",
+            loudness.loudness_range_lu
+        );
+        println!("  True peak:           {:.2} dBTP", loudness.true_peak_dbtp);
+        println!(
+            "  Sample peak:         {:.2} dBFS",
+            loudness.sample_peak_dbfs
+        );
+        println!();
+
+        // Waveform peaks if requested
+        if let Some(wf) = waveform_data {
+            println!("Waveform Analysis");
+            println!("─────────────────");
+            println!("  Peaks per second:    {}", wf.peaks_per_second);
+            println!("  Total peaks:         {}", wf.total_peaks);
+            println!("  Channels:            {}", wf.channels);
+
+            if let Some(stats) = wf.peak_statistics {
+                println!("  Peak statistics:");
+                println!("    Min:               {:.6}", stats.min);
+                println!("    Max:               {:.6}", stats.max);
+                println!("    Average:           {:.6}", stats.average);
+            }
+            println!();
+        }
+
+        // Spectral analysis if requested
+        if let Some(sp) = spectral_data {
+            println!("Spectral Analysis");
+            println!("─────────────────");
+            println!("  Duration:            {} ms", sp.duration_ms);
+            println!("  Sample rate:         {} Hz", sp.sample_rate);
+            println!("  Channels:            {}", sp.channels);
+            println!("  Peak frequency bands: {:?}", sp.peak_frequency_bands);
+            println!("  Energy profile (16 bands): {:?}", sp.energy_profile);
+            println!("  Average loudness:    {}", sp.average_loudness);
+            println!(
+                "  Spectral hash (first 8 bytes):   {}",
+                sp.spectral_hash_hex
+            );
+            println!();
+        }
+    }
+
+    Ok(())
 }
 
 fn validate(input: &PathBuf) -> Result<()> {
