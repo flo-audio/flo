@@ -43,24 +43,24 @@ flo™ (Fast Layered Object) is a chunked audio format supporting both lossless 
 
 66 bytes, little-endian:
 
-| Offset | Size | Field               | Description                                           |
-| ------ | ---- | ------------------- | ----------------------------------------------------- |
-| 0      | 4    | `magic`             | `FLO!` (0x464C4F21)                                   |
-| 4      | 1    | `version_major`     | Format version (1)                                    |
-| 5      | 1    | `version_minor`     | Minor version (1)                                     |
-| 6      | 2    | `flags`             | Bit flags (see below)                                 |
-| 8      | 4    | `sample_rate`       | Hz (44100, 48000, etc.)                               |
-| 12     | 1    | `channels`          | 1=mono, 2=stereo                                      |
-| 13     | 1    | `bit_depth`         | 16, 24, or 32                                         |
-| 14     | 8    | `total_frames`      | Duration in seconds (number of 1-second audio frames) |
-| 22     | 1    | `compression_level` | Hint (0-9)                                            |
-| 23     | 3    | `reserved`          | Must be 0                                             |
-| 26     | 4    | `data_crc32`        | CRC32 of DATA chunk                                   |
-| 30     | 8    | `header_size`       | Size of header (66)                                   |
-| 38     | 8    | `toc_size`          | Size of TOC chunk                                     |
-| 46     | 8    | `data_size`         | Size of DATA chunk                                    |
-| 54     | 8    | `extra_size`        | Size of EXTRA chunk                                   |
-| 62     | 8    | `meta_size`         | Size of META chunk                                    |
+| Offset | Size | Field               | Description                                    |
+| ------ | ---- | ------------------- | ---------------------------------------------- |
+| 0      | 4    | `magic`             | `FLO!` (0x464C4F21)                            |
+| 4      | 1    | `version_major`     | Format version (1)                             |
+| 5      | 1    | `version_minor`     | Minor version (1)                              |
+| 6      | 2    | `flags`             | Bit flags (see below)                          |
+| 8      | 4    | `sample_rate`       | Hz (44100, 48000, etc.)                        |
+| 12     | 1    | `channels`          | 1=mono, 2=stereo                               |
+| 13     | 1    | `bit_depth`         | 16, 24, or 32                                  |
+| 14     | 8    | `total_samples`     | Total sample-frames (samples per channel)      |
+| 22     | 1    | `compression_level` | Hint (0-9)                                     |
+| 23     | 3    | `reserved`          | Must be 0                                      |
+| 26     | 4    | `data_crc32`        | CRC32 of DATA chunk                            |
+| 30     | 8    | `header_size`       | Size of header (66)                            |
+| 38     | 8    | `toc_size`          | Size of TOC chunk                              |
+| 46     | 8    | `data_size`         | Size of DATA chunk                             |
+| 54     | 8    | `extra_size`        | Size of EXTRA chunk                            |
+| 62     | 8    | `meta_size`         | Size of META chunk                             |
 
 ### Flags
 

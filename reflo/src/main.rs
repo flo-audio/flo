@@ -254,7 +254,7 @@ fn info(input: &PathBuf, show_metadata: bool) -> Result<()> {
     println!("  Channels:    {}", file_info.channels);
     println!("  Bit depth:   {}", file_info.bit_depth);
     println!("  Duration:    {:.2}s", file_info.duration_secs);
-    println!("  Frames:      {}", file_info.total_frames);
+    println!("  Total sample-frames: {}", file_info.total_samples);
     println!("  File size:   {} bytes", file_info.file_size);
     println!("  Compression: {:.1}x", file_info.compression_ratio);
     println!(

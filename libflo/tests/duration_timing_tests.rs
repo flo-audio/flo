@@ -15,17 +15,17 @@ fn test_duration_accuracy_regression() {
     let flo_data = encode(&samples, sample_rate, channels, 16, None).expect("Encoding failed");
     let file_info = info(&flo_data).expect("Info failed");
 
-    // Total frames represents duration in seconds (number of 1-second frames)
+    // total_samples is actual sample count
     assert_eq!(
-        file_info.total_frames, duration_secs as u64,
-        "Total frames should equal duration in seconds"
+        file_info.total_samples, expected_samples as u64,
+        "Total samples should equal sample count"
     );
 
-    // Duration is total_frames directly (not total_frames / sample_rate)
+    // Duration comes from length_ms in metadata
     let expected_duration = duration_secs as f64;
     assert!(
         (file_info.duration_secs - expected_duration).abs() < 0.001,
-        "Duration should be total_frames (seconds): expected {}, got {}",
+        "Duration should be from length_ms: expected {}, got {}",
         expected_duration,
         file_info.duration_secs
     );

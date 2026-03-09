@@ -4,12 +4,12 @@ The streaming decoder enables real-time playback and progressive loading of floâ
 
 ## Why Streaming?
 
-| Scenario | Standard Decode | Streaming |
-|----------|----------------|-----------|
-| Large files (>10MB) |  Wait for full decode |  Play while loading |
-| Network streaming |  Download entire file |  Play as chunks arrive |
-| Memory usage |  Full file in memory |  Constant memory |
-| Time to first sound |  Seconds |  Milliseconds |
+| Scenario            | Standard Decode      | Streaming             |
+| ------------------- | -------------------- | --------------------- |
+| Large files (>10MB) | Wait for full decode | Play while loading    |
+| Network streaming   | Download entire file | Play as chunks arrive |
+| Memory usage        | Full file in memory  | Constant memory       |
+| Time to first sound | Seconds              | Milliseconds          |
 
 ---
 
@@ -18,7 +18,7 @@ The streaming decoder enables real-time playback and progressive loading of floâ
 ### Basic Usage
 
 ```javascript
-import init, { WasmStreamingDecoder } from '@flo-audio/libflo';
+import init, { WasmStreamingDecoder } from "@flo-audio/libflo";
 
 await init();
 
@@ -50,17 +50,17 @@ decoder.free();
 
 ### Methods
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `new WasmStreamingDecoder()` | `WasmStreamingDecoder` | Create new decoder |
-| `feed(data)` | `void` | Feed bytes (Uint8Array) |
-| `get_info()` | `Object \| null` | Get file info (null if header not yet parsed) |
-| `decode_available()` | `Float32Array` | Decode all buffered data |
-| `next_frame()` | `Float32Array \| null` | Get next frame (null if none available) |
-| `available_frames()` | `number` | Number of frames ready to decode |
-| `current_frame_index()` | `number` | Current position in file |
-| `reset()` | `void` | Reset decoder state |
-| `free()` | `void` | Release resources |
+| Method                       | Returns                | Description                                   |
+| ---------------------------- | ---------------------- | --------------------------------------------- |
+| `new WasmStreamingDecoder()` | `WasmStreamingDecoder` | Create new decoder                            |
+| `feed(data)`                 | `void`                 | Feed bytes (Uint8Array)                       |
+| `get_info()`                 | `Object \| null`       | Get file info (null if header not yet parsed) |
+| `decode_available()`         | `Float32Array`         | Decode all buffered data                      |
+| `next_frame()`               | `Float32Array \| null` | Get next frame (null if none available)       |
+| `available_frames()`         | `number`               | Number of frames ready to decode              |
+| `current_frame_index()`      | `number`               | Current position in file                      |
+| `reset()`                    | `void`                 | Reset decoder state                           |
+| `free()`                     | `void`                 | Release resources                             |
 
 ### Info Object
 
@@ -69,7 +69,7 @@ decoder.free();
   sample_rate: 44100,
   channels: 2,
   bit_depth: 16,
-  total_frames: 180,        // Total frames in file
+  total_samples: 180,        // Total sample-frames (samples per channel) in file
   is_lossy: false,
   lossy_quality: null       // 0-4 if lossy
 }
@@ -85,39 +85,39 @@ decoder.free();
 async function streamFromUrl(url) {
   const decoder = new WasmStreamingDecoder();
   const audioContext = new AudioContext();
-  
+
   const response = await fetch(url);
   const reader = response.body.getReader();
-  
+
   // Buffer for scheduling audio
   const sampleBuffer = [];
   let nextTime = audioContext.currentTime;
-  
+
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-    
+
     // Feed chunk to decoder
     decoder.feed(value);
-    
+
     // Decode and schedule all available frames
     while (true) {
       const samples = decoder.next_frame();
       if (samples === null) break;
-      
+
       // Schedule playback
       const info = decoder.get_info();
       const audioBuffer = samplesToAudioBuffer(samples, info, audioContext);
-      
+
       const source = audioContext.createBufferSource();
       source.buffer = audioBuffer;
       source.connect(audioContext.destination);
       source.start(nextTime);
-      
+
       nextTime += audioBuffer.duration;
     }
   }
-  
+
   decoder.free();
 }
 ```
@@ -127,23 +127,23 @@ async function streamFromUrl(url) {
 ```javascript
 async function streamWithProgress(url, onProgress) {
   const response = await fetch(url);
-  const contentLength = parseInt(response.headers.get('Content-Length') || '0');
+  const contentLength = parseInt(response.headers.get("Content-Length") || "0");
   const reader = response.body.getReader();
-  
+
   const decoder = new WasmStreamingDecoder();
   let loaded = 0;
-  
+
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-    
+
     loaded += value.length;
     onProgress(loaded / contentLength);
-    
+
     decoder.feed(value);
     // Process frames...
   }
-  
+
   decoder.free();
 }
 ```
@@ -157,6 +157,7 @@ async function streamWithProgress(url, onProgress) {
 For glitch-free playback, use an AudioWorklet:
 
 **audio-processor.js:**
+
 ```javascript
 class FloProcessor extends AudioWorkletProcessor {
   constructor() {
@@ -166,12 +167,12 @@ class FloProcessor extends AudioWorkletProcessor {
       this.buffer.push(...e.data);
     };
   }
-  
+
   process(inputs, outputs) {
     const output = outputs[0];
     const channel0 = output[0];
     const channel1 = output[1];
-    
+
     for (let i = 0; i < channel0.length; i++) {
       if (this.buffer.length >= 2) {
         channel0[i] = this.buffer.shift();
@@ -181,20 +182,21 @@ class FloProcessor extends AudioWorkletProcessor {
         channel1[i] = 0;
       }
     }
-    
+
     return true;
   }
 }
 
-registerProcessor('flo-processor', FloProcessor);
+registerProcessor("flo-processor", FloProcessor);
 ```
 
 **Main code:**
+
 ```javascript
 const audioContext = new AudioContext();
-await audioContext.audioWorklet.addModule('audio-processor.js');
+await audioContext.audioWorklet.addModule("audio-processor.js");
 
-const processor = new AudioWorkletNode(audioContext, 'flo-processor');
+const processor = new AudioWorkletNode(audioContext, "flo-processor");
 processor.connect(audioContext.destination);
 
 // Feed samples to worklet
@@ -225,38 +227,38 @@ const MIN_BUFFER_SAMPLES = 8192; // ~185ms at 44100Hz
 async function streamWithBuffering(url) {
   const decoder = new WasmStreamingDecoder();
   const audioContext = new AudioContext();
-  
+
   let sampleBuffer = new Float32Array(0);
   let playing = false;
   let nextTime = 0;
-  
+
   const response = await fetch(url);
   const reader = response.body.getReader();
-  
+
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-    
+
     decoder.feed(value);
-    
+
     // Collect frames
     while (true) {
       const samples = decoder.next_frame();
       if (samples === null) break;
-      
+
       // Append to buffer
       const newBuffer = new Float32Array(sampleBuffer.length + samples.length);
       newBuffer.set(sampleBuffer);
       newBuffer.set(samples, sampleBuffer.length);
       sampleBuffer = newBuffer;
     }
-    
+
     // Start playback once buffer is full
     if (!playing && sampleBuffer.length >= MIN_BUFFER_SAMPLES) {
       playing = true;
       nextTime = audioContext.currentTime;
     }
-    
+
     // Schedule buffered audio
     if (playing && sampleBuffer.length >= MIN_BUFFER_SAMPLES) {
       scheduleAudio(sampleBuffer, audioContext, nextTime);
@@ -264,12 +266,12 @@ async function streamWithBuffering(url) {
       sampleBuffer = new Float32Array(0);
     }
   }
-  
+
   // Play remaining buffer
   if (sampleBuffer.length > 0) {
     scheduleAudio(sampleBuffer, audioContext, nextTime);
   }
-  
+
   decoder.free();
 }
 ```
@@ -280,10 +282,10 @@ async function streamWithBuffering(url) {
 
 Frame sizes vary by encoding mode:
 
-| Mode | Samples per Frame | Duration at 44.1kHz |
-|------|-------------------|---------------------|
-| Lossless | 44100 | 1 second |
-| Lossy | 1024-2048 | ~23-46ms |
+| Mode     | Samples per Frame | Duration at 44.1kHz |
+| -------- | ----------------- | ------------------- |
+| Lossless | 44100             | 1 second            |
+| Lossy    | 1024-2048         | ~23-46ms            |
 
 For lossy files, use buffering to collect multiple small frames before scheduling.
 
@@ -296,18 +298,17 @@ const decoder = new WasmStreamingDecoder();
 
 try {
   decoder.feed(chunk);
-  
+
   const info = decoder.get_info();
   if (!info) {
-    console.log('Header not yet received');
+    console.log("Header not yet received");
     return;
   }
-  
+
   const samples = decoder.next_frame();
   // ...
-  
 } catch (error) {
-  console.error('Streaming error:', error.message);
+  console.error("Streaming error:", error.message);
 } finally {
   decoder.free();
 }
@@ -330,6 +331,7 @@ try {
 ```
 
 The decoder holds:
+
 - Input buffer (grows as you feed data)
 - Internal decode state
 - Overlap buffers (for lossy MDCT)

@@ -24,8 +24,8 @@ pub struct StreamingAudioInfo {
     pub channels: u8,
     /// Bits per sample
     pub bit_depth: u8,
-    /// Total frames (if known)
-    pub total_frames: u64,
+    /// Total samples (actual sample count)
+    pub total_samples: u64,
     /// Is lossy encoding
     pub is_lossy: bool,
 }
@@ -33,11 +33,13 @@ pub struct StreamingAudioInfo {
 impl StreamingAudioInfo {
     /// Calculate duration in seconds
     pub fn duration_secs(&self) -> f64 {
-        self.total_frames as f64
+        self.total_samples as f64 / self.sample_rate as f64
     }
 
-    /// Calculate samples per channel
-    pub fn total_samples(&self) -> u64 {
-        self.total_frames * self.sample_rate as u64
+    /// Get total samples per channel
+    pub fn total_samples_per_channel(&self) -> u64 {
+        // `total_samples` is stored as samples per channel (number of sample-frames),
+        // so return it directly.
+        self.total_samples
     }
 }

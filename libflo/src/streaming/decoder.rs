@@ -54,7 +54,7 @@ impl StreamingDecoder {
             sample_rate: h.sample_rate,
             channels: h.channels,
             bit_depth: h.bit_depth,
-            total_frames: h.total_frames,
+            total_samples: h.total_samples,
             is_lossy: self.is_lossy,
         })
     }
@@ -200,7 +200,7 @@ impl StreamingDecoder {
             ]),
             channels: self.buffer[12],
             bit_depth: self.buffer[13],
-            total_frames: u64::from_le_bytes([
+            total_samples: u64::from_le_bytes([
                 self.buffer[14],
                 self.buffer[15],
                 self.buffer[16],

@@ -59,9 +59,9 @@ fn test_info() {
     assert_eq!(file_info.sample_rate, sample_rate);
     assert_eq!(file_info.channels, channels);
     assert_eq!(file_info.bit_depth, 24);
-    // 3 seconds of audio at 48000Hz stereo = 288000 samples
-    // total_frames = duration in seconds = 3
-    assert_eq!(file_info.total_frames, 3);
+    // 3 seconds at 48000Hz = 144000 samples (encoder handles stereo internally)
+    // total_samples is actual sample count from header
+    assert_eq!(file_info.total_samples, 144000);
     assert!(file_info.crc_valid);
     assert!(file_info.compression_ratio > 1.0);
 }

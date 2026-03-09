@@ -171,6 +171,8 @@ pub struct AudioInfo {
 }
 ```
 
+Note: `total_samples` counts sample-frames (samples per channel). For UI/display, prefer using `FloMetadata.length_ms` (duration in ms) when available; otherwise compute duration from `total_samples / sample_rate`.
+
 ---
 
 ## Validation

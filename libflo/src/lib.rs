@@ -41,8 +41,10 @@ pub struct AudioInfo {
     pub channels: u8,
     /// Bits per sample
     pub bit_depth: u8,
-    /// Total number of frames
-    pub total_frames: u64,
+    /// Total sample-frames (samples per channel). This is the number of sample
+    /// instants per channel (not interleaved samples). Use metadata.length_ms
+    /// for a quick duration lookup.
+    pub total_samples: u64,
     /// Duration in seconds
     pub duration_secs: f64,
     /// File size in bytes
@@ -267,6 +269,13 @@ fn add_analysis_data_if_missing(
         flo_metadata.loudness_profile = vec![loudness_point];
     }
 
+    // Always set length_ms (duration in milliseconds).
+    // `samples` is interleaved (L,R,L,R...)
+    let interleaved_len = samples.len() as u64;
+    let samples_per_channel = interleaved_len / channels as u64;
+    let length_ms = (samples_per_channel as f64 / sample_rate as f64 * 1000.0) as u64;
+    flo_metadata.length_ms = Some(length_ms);
+
     // Serialize back to bytes
     to_vec_named(&flo_metadata).unwrap_or_default()
 }
@@ -377,9 +386,18 @@ pub fn info(data: &[u8]) -> Result<AudioInfo, JsValue> {
     let reader = Reader::new();
     let file = reader.read(data).map_err(to_js_err)?;
 
-    let duration_secs = file.header.total_frames as f64;
-    let original_size = ((file.header.total_frames as f64)
-        * (file.header.sample_rate as f64)
+    // Use length_ms from metadata for duration
+    let metadata = FloMetadata::from_msgpack(&file.metadata).unwrap_or_default();
+    let duration_secs = metadata
+        .length_ms
+        .map(|ms| ms as f64 / 1000.0)
+        .unwrap_or_else(|| {
+            // Fallback: calculate from total_samples / sample_rate
+            file.header.total_samples as f64 / file.header.sample_rate as f64
+        });
+
+    // Calculate original size from total_samples (actual sample count in header)
+    let original_size = (file.header.total_samples as f64
         * (file.header.channels as f64)
         * ((file.header.bit_depth as f64) / 8.0)) as usize;
     let compression_ratio = if !data.is_empty() {
@@ -409,7 +427,7 @@ pub fn info(data: &[u8]) -> Result<AudioInfo, JsValue> {
         sample_rate: file.header.sample_rate,
         channels: file.header.channels,
         bit_depth: file.header.bit_depth,
-        total_frames: file.header.total_frames,
+        total_samples: file.header.total_samples,
         duration_secs,
         file_size: data.len(),
         compression_ratio,
@@ -516,8 +534,8 @@ impl WasmStreamingDecoder {
                 js_sys::Reflect::set(&obj, &"bit_depth".into(), &info.bit_depth.into())?;
                 js_sys::Reflect::set(
                     &obj,
-                    &"total_frames".into(),
-                    &(info.total_frames as f64).into(),
+                    &"total_samples".into(),
+                    &(info.total_samples as f64).into(),
                 )?;
                 js_sys::Reflect::set(&obj, &"is_lossy".into(), &info.is_lossy.into())?;
                 Ok(obj.into())

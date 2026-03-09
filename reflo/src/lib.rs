@@ -22,7 +22,7 @@ pub struct FloInfo {
     pub channels: u8,
     pub bit_depth: u8,
     pub duration_secs: f64,
-    pub total_frames: u64,
+    pub total_samples: u64,
     pub file_size: usize,
     pub compression_ratio: f64,
     pub crc_valid: bool,
@@ -37,9 +37,18 @@ pub fn get_flo_info(data: &[u8]) -> Result<FloInfo> {
         .read(data)
         .map_err(|e| anyhow::anyhow!("Failed to read flo file: {}", e))?;
 
-    let duration_secs = file.header.total_frames as f64;
-    let original_size = ((file.header.total_frames as f64)
-        * (file.header.sample_rate as f64)
+    // Use length_ms from metadata for duration
+    let metadata = libflo_audio::FloMetadata::from_msgpack(&file.metadata).unwrap_or_default();
+    let duration_secs = metadata
+        .length_ms
+        .map(|ms| ms as f64 / 1000.0)
+        .unwrap_or_else(|| {
+            // Fallback: calculate from total_samples / sample_rate
+            file.header.total_samples as f64 / file.header.sample_rate as f64
+        });
+
+    // Calculate original size from total_samples
+    let original_size = (file.header.total_samples as f64
         * (file.header.channels as f64)
         * ((file.header.bit_depth as f64) / 8.0)) as usize;
     let compression_ratio = if !data.is_empty() {
@@ -71,7 +80,7 @@ pub fn get_flo_info(data: &[u8]) -> Result<FloInfo> {
         sample_rate: file.header.sample_rate,
         channels: file.header.channels,
         bit_depth: file.header.bit_depth,
-        total_frames: file.header.total_frames,
+        total_samples: file.header.total_samples,
         duration_secs,
         file_size: data.len(),
         compression_ratio,
@@ -262,6 +271,11 @@ pub fn encode_from_samples(
         format!("Lossless, level {}", options.level)
     };
     meta.encoder_settings = Some(settings_desc);
+
+    // Calculate and set length_ms (duration in milliseconds)
+    let total_samples = samples.len() / channels;
+    let length_ms = (total_samples as f64 / sample_rate as f64 * 1000.0) as u64;
+    meta.length_ms = Some(length_ms);
 
     // Always serialize metadata since we now have encoding info
     let metadata_bytes = meta.to_msgpack().ok();

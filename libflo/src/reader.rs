@@ -59,7 +59,7 @@ impl Reader {
             sample_rate: cursor.read_u32_le()?,
             channels: cursor.read_u8()?,
             bit_depth: cursor.read_u8()?,
-            total_frames: cursor.read_u64_le()?,
+            total_samples: cursor.read_u64_le()?,
             compression_level: cursor.read_u8()?,
             data_crc32: {
                 cursor.skip(3)?; // reserved

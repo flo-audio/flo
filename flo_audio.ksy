@@ -87,9 +87,11 @@ types:
         type: u1
         doc: Bits per sample (16, 24, or 32)
       
-      - id: total_frames
+      - id: total_samples
         type: u8
-        doc: Duration in seconds (number of 1-second frames)
+        doc: Total sample-frames (samples per channel). This is the number of sample
+             instants per channel (not interleaved samples). Use metadata.length_ms
+             for a quick duration lookup.
       
       - id: compression_level
         type: u1

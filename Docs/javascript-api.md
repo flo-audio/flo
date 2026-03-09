@@ -151,7 +151,7 @@ info(data) → Object
   sample_rate: number,      // e.g., 44100
   channels: number,         // 1 or 2
   bit_depth: number,        // 16, 24, or 32
-  total_samples: number,    // Total sample count
+  total_samples: number,    // Total sample-frames (samples per channel)
   duration_secs: number,    // Duration in seconds
   is_lossy: boolean,        // true if lossy mode
   compression_ratio: number // e.g., 2.5 for 2.5x compression

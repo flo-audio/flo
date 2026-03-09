@@ -70,16 +70,13 @@ impl Writer {
         // Calculate total samples across all frames
         let total_samples: u64 = frames.iter().map(|frame| frame.frame_samples as u64).sum();
 
-        // total_frames represents duration in seconds (number of 1-second frames)
-        let total_frames = total_samples / sample_rate as u64;
-
         // header
         self.write_header_ex(
             sample_rate,
             channels,
             bit_depth,
             compression_level,
-            total_frames,
+            total_samples,
             data_crc32,
             flags,
             toc_size,
@@ -109,7 +106,7 @@ impl Writer {
         channels: u8,
         bit_depth: u8,
         compression_level: u8,
-        total_frames: u64,
+        total_samples: u64,
         data_crc32: u32,
         toc_size: u64,
         data_size: u64,
@@ -121,7 +118,7 @@ impl Writer {
             channels,
             bit_depth,
             compression_level,
-            total_frames,
+            total_samples,
             data_crc32,
             0,
             toc_size,
@@ -138,7 +135,7 @@ impl Writer {
         channels: u8,
         bit_depth: u8,
         compression_level: u8,
-        total_frames: u64,
+        total_samples: u64,
         data_crc32: u32,
         flags: u16,
         toc_size: u64,
@@ -165,8 +162,8 @@ impl Writer {
         // Bit Depth (u8)
         self.buffer.push(bit_depth);
 
-        // Total Frames (u64 LE)
-        self.buffer.extend_from_slice(&total_frames.to_le_bytes());
+        // Total Samples (u64 LE)
+        self.buffer.extend_from_slice(&total_samples.to_le_bytes());
 
         // Compression Level (u8)
         self.buffer.push(compression_level);

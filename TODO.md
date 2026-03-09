@@ -30,10 +30,14 @@
 ## QoL
 
 - [ ] Add CLI tool for file inspection (info, metadata, analysis)
+- [ ] Add bulk converter to reflo + web demo (possibly separate page)
 - [ ] Add streaming encode support (currently only decode streams)
 - [ ] Add file comparison view (compare original vs encoded)
 
 # Bugs
 
-- [ ] Investigate: some example .flo files may have invalid total_frames (audio_lossless.flo shows total_frames=1)
-- [X] fix bug with lossy encoded files having broken duration (1:50:00 ish)
+- [x] Investigate: some example .flo files may have invalid total_frames (audio_lossless.flo shows total_frames=1)
+  - Changed `total_frames` to `total_samples` and it stores the actual sample count
+  - Made `length_ms` always written to metadata during encode
+  - Reader now uses `length_ms` for duration (with fallback to calculation for older files)
+- [x] fix bug with lossy encoded files having broken duration (1:50:00 ish)
