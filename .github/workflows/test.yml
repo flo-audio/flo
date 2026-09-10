@@ -2,9 +2,9 @@ name: Test
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
 
 env:
   CARGO_TERM_COLOR: always
@@ -48,7 +48,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: "18"
 
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
@@ -58,8 +58,8 @@ jobs:
       - name: Cache npm
         uses: actions/cache@v4
         with:
-          path: Build/crates/libflo/tests/js/node_modules
-          key: ${{ runner.os }}-npm-${{ hashFiles('Build/crates/libflo/tests/js/package.json') }}
+          path: Tests/libflo/js/node_modules
+          key: ${{ runner.os }}-npm-${{ hashFiles('Tests/libflo/js/package.json') }}
           restore-keys: |
             ${{ runner.os }}-npm-
 

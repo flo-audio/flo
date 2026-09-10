@@ -26,21 +26,25 @@ impl Reader {
         let header = self.read_header(&mut cursor)?;
 
         // toc
-        let toc = self.read_toc(&mut cursor, header.toc_size as usize)?;
+        let toc_size = usize::try_from(header.toc_size)
+            .map_err(|_| "TOC size does not fit in memory".to_string())?;
+        let data_size = usize::try_from(header.data_size)
+            .map_err(|_| "DATA size does not fit in memory".to_string())?;
+        let extra_size = usize::try_from(header.extra_size)
+            .map_err(|_| "EXTRA size does not fit in memory".to_string())?;
+        let meta_size = usize::try_from(header.meta_size)
+            .map_err(|_| "META size does not fit in memory".to_string())?;
+
+        let toc = self.read_toc(&mut cursor, toc_size)?;
 
         // Read DATA chunk
-        let frames = self.read_data_chunk(
-            &mut cursor,
-            header.data_size as usize,
-            header.channels,
-            &toc,
-        )?;
+        let frames = self.read_data_chunk(&mut cursor, data_size, header.channels, &toc)?;
 
         // Skip EXTRA chunk
-        cursor.skip(header.extra_size as usize)?;
+        cursor.skip(extra_size)?;
 
         // Read META chunk
-        let metadata = cursor.read_bytes(header.meta_size as usize)?;
+        let metadata = cursor.read_bytes(meta_size)?;
 
         Ok(FloFile {
             header,
@@ -75,8 +79,11 @@ impl Reader {
 
     fn read_toc(&self, cursor: &mut Cursor, toc_size: usize) -> FloResult<Vec<TocEntry>> {
         if toc_size < 4 {
+            cursor.skip(toc_size)?;
             return Ok(vec![]);
         }
+
+        let toc_end = cursor.checked_end(toc_size)?;
 
         let num_entries = cursor.read_u32_le()? as usize;
 
@@ -95,6 +102,11 @@ impl Reader {
             });
         }
 
+        if cursor.pos > toc_end {
+            return Err("TOC entries exceed TOC size".to_string());
+        }
+        cursor.pos = toc_end;
+
         Ok(entries)
     }
 
@@ -106,18 +118,28 @@ impl Reader {
         toc: &[TocEntry],
     ) -> FloResult<Vec<Frame>> {
         let data_start = cursor.pos;
-        let data_end = cursor.pos + data_size;
+        let data_end = cursor.checked_end(data_size)?;
         let mut frames = Vec::with_capacity(toc.len());
 
         for toc_entry in toc.iter() {
-            let frame_start = data_start + toc_entry.byte_offset as usize;
+            let byte_offset = usize::try_from(toc_entry.byte_offset)
+                .map_err(|_| "Frame offset does not fit in memory".to_string())?;
+            let frame_start = data_start
+                .checked_add(byte_offset)
+                .ok_or_else(|| "Frame offset overflows memory address space".to_string())?;
 
             if frame_start >= data_end {
-                break;
+                return Err("Frame offset is outside DATA chunk".to_string());
             }
 
             cursor.pos = frame_start;
             let frame_size = toc_entry.frame_size as usize;
+            let frame_end = frame_start
+                .checked_add(frame_size)
+                .ok_or_else(|| "Frame size overflows memory address space".to_string())?;
+            if frame_end > data_end {
+                return Err("Frame exceeds DATA chunk".to_string());
+            }
 
             let frame = self.read_frame(cursor, channels, frame_size)?;
             frames.push(frame);
@@ -129,7 +151,12 @@ impl Reader {
 
     fn read_frame(&self, cursor: &mut Cursor, channels: u8, frame_size: usize) -> FloResult<Frame> {
         let frame_start = cursor.pos;
-        let frame_end = frame_start + frame_size;
+        let frame_end = frame_start
+            .checked_add(frame_size)
+            .ok_or_else(|| "Frame size overflows memory address space".to_string())?;
+        if frame_end > cursor.data.len() {
+            return Err("Frame exceeds input data".to_string());
+        }
 
         // frame header: type(1) + samples(4) + flags(1)
         let frame_type_byte = cursor.read_u8()?;
@@ -151,7 +178,13 @@ impl Reader {
         for _ch_idx in 0..num_channels_to_read {
             // channel size
             let ch_size = cursor.read_u32_le()? as usize;
-            let ch_end = cursor.pos + ch_size;
+            let ch_end = cursor
+                .pos
+                .checked_add(ch_size)
+                .ok_or_else(|| "Channel size overflows memory address space".to_string())?;
+            if ch_end > frame_end {
+                return Err("Channel exceeds frame".to_string());
+            }
 
             let ch_data =
                 self.read_channel_data(cursor, frame_type, frame_samples as usize, ch_end)?;
@@ -216,7 +249,11 @@ impl Reader {
                 // predictor coeffs
                 let mut predictor_coeffs = Vec::with_capacity(order);
                 for _ in 0..order {
-                    if cursor.pos + 4 > channel_end {
+                    if cursor
+                        .pos
+                        .checked_add(4)
+                        .is_none_or(|end| end > channel_end)
+                    {
                         break;
                     }
                     predictor_coeffs.push(cursor.read_i32_le()?);
@@ -275,17 +312,28 @@ impl<'a> Cursor<'a> {
     }
 
     fn read_bytes(&mut self, count: usize) -> FloResult<Vec<u8>> {
-        if self.pos + count > self.data.len() {
+        let end = self.checked_end(count)?;
+        if end > self.data.len() {
             return Err("Unexpected end of file".to_string());
         }
-        let bytes = self.data[self.pos..self.pos + count].to_vec();
-        self.pos += count;
+        let bytes = self.data[self.pos..end].to_vec();
+        self.pos = end;
         Ok(bytes)
     }
 
     fn skip(&mut self, count: usize) -> FloResult<()> {
-        self.pos = (self.pos + count).min(self.data.len());
+        let end = self.checked_end(count)?;
+        if end > self.data.len() {
+            return Err("Unexpected end of file".to_string());
+        }
+        self.pos = end;
         Ok(())
+    }
+
+    fn checked_end(&self, count: usize) -> FloResult<usize> {
+        self.pos
+            .checked_add(count)
+            .ok_or_else(|| "Input range overflows memory address space".to_string())
     }
 
     fn read_u8(&mut self) -> FloResult<u8> {

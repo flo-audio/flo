@@ -101,6 +101,8 @@ pub fn encode(
     bit_depth: u8,
     metadata: Option<Vec<u8>>,
 ) -> Result<Vec<u8>, JsValue> {
+    validate_audio_format(samples, sample_rate, channels, bit_depth).map_err(to_js_err)?;
+
     // Auto-add analysis data if missing
     let metadata_with_waveform = add_analysis_data_if_missing(
         &metadata.unwrap_or_default(),
@@ -108,7 +110,8 @@ pub fn encode(
         sample_rate,
         channels,
         50, // 50 peaks per second default
-    );
+    )
+    .map_err(to_js_err)?;
 
     let encoder = Encoder::new(sample_rate, channels, bit_depth);
     encoder
@@ -141,6 +144,8 @@ pub fn encode_lossy(
     quality: u8,
     metadata: Option<Vec<u8>>,
 ) -> Result<Vec<u8>, JsValue> {
+    validate_audio_format(samples, sample_rate, channels, _bit_depth).map_err(to_js_err)?;
+
     // quality levels to 0.0-1.0
     let quality_f32 = match quality {
         0 => 0.0,
@@ -157,7 +162,8 @@ pub fn encode_lossy(
         sample_rate,
         channels,
         50, // 50 peaks per second default
-    );
+    )
+    .map_err(to_js_err)?;
 
     let mut encoder = lossy::TransformEncoder::new(sample_rate, channels, quality_f32);
     encoder
@@ -186,6 +192,8 @@ pub fn encode_with_bitrate(
     target_bitrate_kbps: u32,
     metadata: Option<Vec<u8>>,
 ) -> Result<Vec<u8>, JsValue> {
+    validate_audio_format(samples, sample_rate, channels, _bit_depth).map_err(to_js_err)?;
+
     // bitrate to quality
     let quality =
         lossy::QualityPreset::from_bitrate(target_bitrate_kbps, sample_rate, channels).as_f32();
@@ -197,7 +205,8 @@ pub fn encode_with_bitrate(
         sample_rate,
         channels,
         50, // 50 peaks per second default
-    );
+    )
+    .map_err(to_js_err)?;
 
     let mut encoder = lossy::TransformEncoder::new(sample_rate, channels, quality);
     encoder
@@ -216,16 +225,37 @@ pub fn encode_with_bitrate(
 ///
 /// # Returns
 /// Updated metadata with analysis data (waveform, spectrum, loudness)
+fn validate_audio_format(
+    samples: &[f32],
+    sample_rate: u32,
+    channels: u8,
+    bit_depth: u8,
+) -> Result<(), String> {
+    if sample_rate == 0 {
+        return Err("Sample rate must be greater than zero".to_string());
+    }
+    if channels == 0 {
+        return Err("Channel count must be greater than zero".to_string());
+    }
+    if !matches!(bit_depth, 8 | 16 | 24 | 32) {
+        return Err("Bit depth must be 8, 16, 24, or 32".to_string());
+    }
+    if !samples.len().is_multiple_of(channels as usize) {
+        return Err("Interleaved samples must contain a complete final frame".to_string());
+    }
+    Ok(())
+}
+
 fn add_analysis_data_if_missing(
     metadata: &[u8],
     samples: &[f32],
     sample_rate: u32,
     channels: u8,
     peaks_per_second: u32,
-) -> Vec<u8> {
+) -> Result<Vec<u8>, String> {
     // Try to parse existing metadata
     let mut flo_metadata: FloMetadata = if !metadata.is_empty() {
-        from_slice(metadata).unwrap_or_default()
+        from_slice(metadata).map_err(|e| format!("Invalid metadata: {}", e))?
     } else {
         FloMetadata::default()
     };
@@ -274,12 +304,12 @@ fn add_analysis_data_if_missing(
     // Always set length_ms (duration in milliseconds).
     // `samples` is interleaved (L,R,L,R...)
     let interleaved_len = samples.len() as u64;
-    let samples_per_channel = interleaved_len / channels as u64;
-    let length_ms = (samples_per_channel as f64 / sample_rate as f64 * 1000.0) as u64;
+    let samples_per_channel = interleaved_len / (channels as u64);
+    let length_ms = (((samples_per_channel as f64) / (sample_rate as f64)) * 1000.0) as u64;
     flo_metadata.length_ms = Some(length_ms);
 
     // Serialize back to bytes
-    to_vec_named(&flo_metadata).unwrap_or_default()
+    to_vec_named(&flo_metadata).map_err(|e| format!("Failed to serialize metadata: {}", e))
 }
 
 /// decode flo file to samples
@@ -392,14 +422,14 @@ pub fn info(data: &[u8]) -> Result<AudioInfo, JsValue> {
     let metadata = FloMetadata::from_msgpack(&file.metadata).unwrap_or_default();
     let duration_secs = metadata
         .length_ms
-        .map(|ms| ms as f64 / 1000.0)
+        .map(|ms| (ms as f64) / 1000.0)
         .unwrap_or_else(|| {
             // Fallback: calculate from total_samples / sample_rate
-            file.header.total_samples as f64 / file.header.sample_rate as f64
+            (file.header.total_samples as f64) / (file.header.sample_rate as f64)
         });
 
     // Calculate original size from total_samples (actual sample count in header)
-    let original_size = (file.header.total_samples as f64
+    let original_size = ((file.header.total_samples as f64)
         * (file.header.channels as f64)
         * ((file.header.bit_depth as f64) / 8.0)) as usize;
     let compression_ratio = if !data.is_empty() {
@@ -1062,7 +1092,7 @@ pub fn update_metadata(flo_data: &[u8], new_metadata: &[u8]) -> Result<Vec<u8>, 
 /// update metadata without re-encoding (native)
 pub fn update_metadata_bytes(flo_data: &[u8], new_metadata: &[u8]) -> FloResult<Vec<u8>> {
     // basic checks
-    if flo_data.len() < HEADER_SIZE as usize {
+    if flo_data.len() < (HEADER_SIZE as usize) {
         return Err("File too small to be valid flo".to_string());
     }
 
@@ -1078,10 +1108,10 @@ pub fn update_metadata_bytes(flo_data: &[u8], new_metadata: &[u8]) -> FloResult<
     // find where metadata starts
     // layout: magic(4) + header + toc + data + extra + metadata
     let meta_offset = 4
-        + file.header.header_size as usize
-        + file.header.toc_size as usize
-        + file.header.data_size as usize
-        + file.header.extra_size as usize;
+        + (file.header.header_size as usize)
+        + (file.header.toc_size as usize)
+        + (file.header.data_size as usize)
+        + (file.header.extra_size as usize);
 
     // copy up to metadata
     let mut result = Vec::with_capacity(meta_offset + new_metadata.len());
@@ -1159,7 +1189,7 @@ pub fn get_metadata_bytes(flo_data: &[u8]) -> Result<Vec<u8>, JsValue> {
 /// # Returns
 /// Raw MessagePack metadata bytes (or empty array)
 pub fn get_metadata_bytes_native(flo_data: &[u8]) -> FloResult<Vec<u8>> {
-    if flo_data.len() < HEADER_SIZE as usize {
+    if flo_data.len() < (HEADER_SIZE as usize) {
         return Err("File too small".to_string());
     }
 
@@ -1173,7 +1203,7 @@ pub fn get_metadata_bytes_native(flo_data: &[u8]) -> FloResult<Vec<u8>> {
 /// does the file have metadata?
 #[wasm_bindgen]
 pub fn has_metadata(flo_data: &[u8]) -> bool {
-    if flo_data.len() < HEADER_SIZE as usize {
+    if flo_data.len() < (HEADER_SIZE as usize) {
         return false;
     }
 
@@ -1370,7 +1400,7 @@ pub fn spectral_similarity_score(
 ///
 /// # Arguments
 /// * `samples1` - First audio samples
-/// * `samples2` - Second audio samples  
+/// * `samples2` - Second audio samples
 /// * `sample_rate` - Sample rate in Hz
 /// * `channels` - Number of audio channels (1 or 2)
 /// * `fft_size` - FFT window size (default: 2048)
@@ -1471,7 +1501,7 @@ mod tests {
     #[test]
     fn test_update_metadata_preserves_audio() {
         // Create a simple flo file with metadata
-        let samples: Vec<f32> = (0..4410).map(|i| (i as f32 * 0.01).sin() * 0.5).collect();
+        let samples: Vec<f32> = (0..4410).map(|i| ((i as f32) * 0.01).sin() * 0.5).collect();
         let encoder = Encoder::new(44100, 1, 16);
         let original_meta = b"original metadata";
         let flo_data = encoder.encode(&samples, original_meta).unwrap();

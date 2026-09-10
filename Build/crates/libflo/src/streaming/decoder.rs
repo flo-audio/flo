@@ -85,7 +85,9 @@ impl StreamingDecoder {
 
         let header = match self.header.as_ref() {
             Some(h) => h.clone(),
-            None => return Err("No header".to_string()),
+            None => {
+                return Err("No header".to_string());
+            }
         };
 
         if self.current_frame >= self.toc.len() {
@@ -94,8 +96,16 @@ impl StreamingDecoder {
         }
 
         let toc_entry = &self.toc[self.current_frame];
-        let frame_start = self.data_offset + toc_entry.byte_offset as usize;
-        let frame_end = frame_start + toc_entry.frame_size as usize;
+        let frame_start = self
+            .data_offset
+            .checked_add(
+                usize::try_from(toc_entry.byte_offset)
+                    .map_err(|_| "Frame offset does not fit in memory".to_string())?,
+            )
+            .ok_or_else(|| "Frame offset overflows memory address space".to_string())?;
+        let frame_end = frame_start
+            .checked_add(toc_entry.frame_size as usize)
+            .ok_or_else(|| "Frame size overflows memory address space".to_string())?;
 
         if frame_end > self.buffer.len() {
             return Ok(None);
@@ -269,6 +279,11 @@ impl StreamingDecoder {
             ]),
         };
 
+        if header.sample_rate == 0 || header.channels == 0 {
+            self.state = DecoderState::Error;
+            return Err("Invalid audio format in header".to_string());
+        }
+
         self.is_lossy = (header.flags & 0x01) != 0;
         if self.is_lossy {
             self.lossy_decoder = Some(TransformDecoder::new(header.sample_rate, header.channels));
@@ -280,8 +295,12 @@ impl StreamingDecoder {
 
     fn try_parse_toc(&mut self) -> FloResult<bool> {
         let header = self.header.as_ref().ok_or("No header")?;
-        let toc_start = 70;
-        let toc_end = toc_start + header.toc_size as usize;
+        let toc_start: usize = 70;
+        let toc_size = usize::try_from(header.toc_size)
+            .map_err(|_| "TOC size does not fit in memory".to_string())?;
+        let toc_end = toc_start
+            .checked_add(toc_size)
+            .ok_or_else(|| "TOC size overflows memory address space".to_string())?;
 
         if self.buffer.len() < toc_end {
             return Ok(false);
@@ -295,12 +314,20 @@ impl StreamingDecoder {
                 self.buffer[toc_start + 3],
             ]) as usize;
 
+            if num_entries > 100_000 {
+                return Err("Invalid TOC: too many entries".to_string());
+            }
+
+            let entries_size = num_entries
+                .checked_mul(20)
+                .ok_or_else(|| "TOC entry count overflows memory address space".to_string())?;
+            if entries_size > toc_size - 4 {
+                return Err("TOC entries exceed TOC size".to_string());
+            }
+
             let entries_start = toc_start + 4;
             for i in 0..num_entries {
                 let offset = entries_start + i * 20;
-                if offset + 20 > self.buffer.len() {
-                    return Ok(false);
-                }
 
                 self.toc.push(TocEntry {
                     frame_index: u32::from_le_bytes([
@@ -342,8 +369,15 @@ impl StreamingDecoder {
     fn count_complete_frames(&self) -> usize {
         let mut count = 0;
         for entry in &self.toc {
-            let frame_end =
-                self.data_offset + entry.byte_offset as usize + entry.frame_size as usize;
+            let Some(byte_offset) = usize::try_from(entry.byte_offset).ok() else {
+                break;
+            };
+            let Some(frame_start) = self.data_offset.checked_add(byte_offset) else {
+                break;
+            };
+            let Some(frame_end) = frame_start.checked_add(entry.frame_size as usize) else {
+                break;
+            };
             if frame_end <= self.buffer.len() {
                 count += 1;
             } else {
@@ -372,9 +406,9 @@ impl StreamingDecoder {
             channels as usize
         };
 
-        let mut pos = 6;
+        let mut pos: usize = 6;
         for _ in 0..num_channels {
-            if pos + 4 > data.len() {
+            if pos.checked_add(4).is_none_or(|end| end > data.len()) {
                 return Err("Frame truncated".to_string());
             }
 
@@ -383,12 +417,15 @@ impl StreamingDecoder {
                     as usize;
             pos += 4;
 
-            if pos + ch_size > data.len() {
+            let channel_end = pos
+                .checked_add(ch_size)
+                .ok_or_else(|| "Channel size overflows memory address space".to_string())?;
+            if channel_end > data.len() {
                 return Err("Channel data truncated".to_string());
             }
 
-            let ch_data = &data[pos..pos + ch_size];
-            pos += ch_size;
+            let ch_data = &data[pos..channel_end];
+            pos = channel_end;
 
             let channel = match frame_type {
                 FrameType::Silence => ChannelData::new_silence(),
@@ -650,7 +687,7 @@ impl StreamingDecoder {
                 }
             }
             prediction >>= shift;
-            samples.push(prediction as i32 + residuals[i]);
+            samples.push((prediction as i32) + residuals[i]);
         }
 
         while samples.len() < target_len {
@@ -684,7 +721,7 @@ impl StreamingDecoder {
                     samples.push(residuals[1].wrapping_add(samples[0]));
                 }
                 for i in 2..residuals.len().min(target_len) {
-                    let pred = (2i64 * samples[i - 1] as i64 - samples[i - 2] as i64) as i32;
+                    let pred = (2i64 * (samples[i - 1] as i64) - (samples[i - 2] as i64)) as i32;
                     samples.push(residuals[i].wrapping_add(pred));
                 }
             }
@@ -696,12 +733,12 @@ impl StreamingDecoder {
                     samples.push(residuals[1].wrapping_add(samples[0]));
                 }
                 if residuals.len() > 2 {
-                    let pred = (2i64 * samples[1] as i64 - samples[0] as i64) as i32;
+                    let pred = (2i64 * (samples[1] as i64) - (samples[0] as i64)) as i32;
                     samples.push(residuals[2].wrapping_add(pred));
                 }
                 for i in 3..residuals.len().min(target_len) {
-                    let pred = (3i64 * samples[i - 1] as i64 - 3i64 * samples[i - 2] as i64
-                        + samples[i - 3] as i64) as i32;
+                    let pred = (3i64 * (samples[i - 1] as i64) - 3i64 * (samples[i - 2] as i64)
+                        + (samples[i - 3] as i64)) as i32;
                     samples.push(residuals[i].wrapping_add(pred));
                 }
             }
@@ -713,18 +750,18 @@ impl StreamingDecoder {
                     samples.push(residuals[1].wrapping_add(samples[0]));
                 }
                 if residuals.len() > 2 {
-                    let pred = (2i64 * samples[1] as i64 - samples[0] as i64) as i32;
+                    let pred = (2i64 * (samples[1] as i64) - (samples[0] as i64)) as i32;
                     samples.push(residuals[2].wrapping_add(pred));
                 }
                 if residuals.len() > 3 {
-                    let pred = (3i64 * samples[2] as i64 - 3i64 * samples[1] as i64
-                        + samples[0] as i64) as i32;
+                    let pred = (3i64 * (samples[2] as i64) - 3i64 * (samples[1] as i64)
+                        + (samples[0] as i64)) as i32;
                     samples.push(residuals[3].wrapping_add(pred));
                 }
                 for i in 4..residuals.len().min(target_len) {
-                    let pred = (4i64 * samples[i - 1] as i64 - 6i64 * samples[i - 2] as i64
-                        + 4i64 * samples[i - 3] as i64
-                        - samples[i - 4] as i64) as i32;
+                    let pred = (4i64 * (samples[i - 1] as i64) - 6i64 * (samples[i - 2] as i64)
+                        + 4i64 * (samples[i - 3] as i64)
+                        - (samples[i - 4] as i64)) as i32;
                     samples.push(residuals[i].wrapping_add(pred));
                 }
             }

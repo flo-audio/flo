@@ -41,7 +41,7 @@ pub fn extract_waveform_peaks(
     sample_rate: u32,
     peaks_per_second: u32,
 ) -> WaveformData {
-    if samples.is_empty() {
+    if samples.is_empty() || channels == 0 || peaks_per_second == 0 || sample_rate == 0 {
         return WaveformData {
             peaks_per_second,
             peaks: Vec::new(),
@@ -49,17 +49,18 @@ pub fn extract_waveform_peaks(
         };
     }
 
-    let samples_per_peak = sample_rate as f64 / peaks_per_second as f64;
-    let total_peaks = (samples.len() as f64 / (samples_per_peak * channels as f64)).ceil() as usize;
+    let samples_per_peak = (sample_rate as f64) / (peaks_per_second as f64);
+    let total_peaks =
+        ((samples.len() as f64) / (samples_per_peak * (channels as f64))).ceil() as usize;
 
     let mut peaks = Vec::with_capacity(total_peaks);
 
     for peak_idx in 0..total_peaks {
-        let start_sample = (peak_idx as f64 * samples_per_peak) as usize;
-        let end_sample = ((peak_idx as f64 + 1.0) * samples_per_peak) as usize;
+        let start_sample = ((peak_idx as f64) * samples_per_peak) as usize;
+        let end_sample = (((peak_idx as f64) + 1.0) * samples_per_peak) as usize;
 
-        let start_sample = start_sample * channels as usize;
-        let end_sample = (end_sample * channels as usize).min(samples.len());
+        let start_sample = start_sample * (channels as usize);
+        let end_sample = (end_sample * (channels as usize)).min(samples.len());
 
         if start_sample >= samples.len() {
             break;
@@ -94,7 +95,7 @@ pub fn extract_waveform_peaks(
                 // Unsupported channel count: treat as mono by averaging
                 let peak = window_samples
                     .chunks(channels as usize)
-                    .map(|chunk| chunk.iter().copied().sum::<f32>() / chunk.len() as f32)
+                    .map(|chunk| chunk.iter().copied().sum::<f32>() / (chunk.len() as f32))
                     .fold(0.0f32, f32::max);
                 peaks.push(peak);
             }
@@ -126,7 +127,7 @@ pub fn extract_waveform_rms(
     sample_rate: u32,
     peaks_per_second: u32,
 ) -> WaveformData {
-    if samples.is_empty() {
+    if samples.is_empty() || channels == 0 || peaks_per_second == 0 || sample_rate == 0 {
         return WaveformData {
             peaks_per_second,
             peaks: Vec::new(),
@@ -134,17 +135,18 @@ pub fn extract_waveform_rms(
         };
     }
 
-    let samples_per_peak = sample_rate as f64 / peaks_per_second as f64;
-    let total_peaks = (samples.len() as f64 / (samples_per_peak * channels as f64)).ceil() as usize;
+    let samples_per_peak = (sample_rate as f64) / (peaks_per_second as f64);
+    let total_peaks =
+        ((samples.len() as f64) / (samples_per_peak * (channels as f64))).ceil() as usize;
 
     let mut peaks = Vec::with_capacity(total_peaks);
 
     for peak_idx in 0..total_peaks {
-        let start_sample = (peak_idx as f64 * samples_per_peak) as usize;
-        let end_sample = ((peak_idx as f64 + 1.0) * samples_per_peak) as usize;
+        let start_sample = ((peak_idx as f64) * samples_per_peak) as usize;
+        let end_sample = (((peak_idx as f64) + 1.0) * samples_per_peak) as usize;
 
-        let start_sample = start_sample * channels as usize;
-        let end_sample = (end_sample * channels as usize).min(samples.len());
+        let start_sample = start_sample * (channels as usize);
+        let end_sample = (end_sample * (channels as usize)).min(samples.len());
 
         if start_sample >= samples.len() {
             break;
@@ -156,7 +158,7 @@ pub fn extract_waveform_rms(
             1 => {
                 // Mono RMS
                 let rms = (window_samples.iter().map(|&s| (s * s) as f64).sum::<f64>()
-                    / window_samples.len() as f64)
+                    / (window_samples.len() as f64))
                     .sqrt() as f32;
                 peaks.push(rms);
             }
@@ -166,16 +168,16 @@ pub fn extract_waveform_rms(
                     (0.0f64, 0.0f64, 0usize),
                     |(l_sum, r_sum, count), chunk| {
                         (
-                            l_sum + (chunk[0] * chunk[0]) as f64,
-                            r_sum + (chunk[1] * chunk[1]) as f64,
+                            l_sum + ((chunk[0] * chunk[0]) as f64),
+                            r_sum + ((chunk[1] * chunk[1]) as f64),
                             count + 1,
                         )
                     },
                 );
 
                 let count = count.max(1); // Avoid division by zero
-                let left_rms = (left_sum / count as f64).sqrt() as f32;
-                let right_rms = (right_sum / count as f64).sqrt() as f32;
+                let left_rms = (left_sum / (count as f64)).sqrt() as f32;
+                let right_rms = (right_sum / (count as f64)).sqrt() as f32;
 
                 // Combine stereo RMS
                 peaks.push((left_rms + right_rms) / 2.0);
@@ -185,11 +187,11 @@ pub fn extract_waveform_rms(
                 let rms = (window_samples
                     .chunks(channels as usize)
                     .map(|chunk| {
-                        let avg = chunk.iter().copied().sum::<f32>() / chunk.len() as f32;
+                        let avg = chunk.iter().copied().sum::<f32>() / (chunk.len() as f32);
                         (avg * avg) as f64
                     })
                     .sum::<f64>()
-                    / (window_samples.len() / channels as usize) as f64)
+                    / ((window_samples.len() / (channels as usize)) as f64))
                     .sqrt() as f32;
                 peaks.push(rms);
             }
@@ -242,8 +244,9 @@ pub fn extract_spectral_fingerprint(
     }
 
     // Calculate duration - ensure at least 1ms for any non-zero samples
-    let samples_per_channel = samples.len() / channels as usize;
-    let duration_ms = ((samples_per_channel as f64 / sample_rate as f64 * 1000.0) as u32).max(1);
+    let samples_per_channel = samples.len() / (channels as usize);
+    let duration_ms =
+        ((((samples_per_channel as f64) / (sample_rate as f64)) * 1000.0) as u32).max(1);
 
     // Create BLAKE3 hash of audio content + format info
     use blake3::Hasher;
@@ -273,7 +276,7 @@ pub fn extract_spectral_fingerprint(
     let analysis_points = [
         samples_per_channel / 4,
         samples_per_channel / 2,
-        samples_per_channel * 3 / 4,
+        (samples_per_channel * 3) / 4,
     ];
     let mut frequency_bands = [0.0f32; 16];
     let mut peak_bands = [0u8; 8];
@@ -284,7 +287,7 @@ pub fn extract_spectral_fingerprint(
             for i in 0..fft_size {
                 let mut sample = 0.0;
                 for ch in 0..channels {
-                    let idx = (sample_idx + i) * channels as usize + ch as usize;
+                    let idx = (sample_idx + i) * (channels as usize) + (ch as usize);
                     if idx < samples.len() {
                         sample += samples[idx];
                     }
@@ -301,8 +304,8 @@ pub fn extract_spectral_fingerprint(
 
             // Calculate energy in frequency bands (16 bands)
             for band in 0..16 {
-                let start_bin = band * fft_size / 32;
-                let end_bin = ((band + 1) * fft_size / 32).min(fft_size / 2);
+                let start_bin = (band * fft_size) / 32;
+                let end_bin = (((band + 1) * fft_size) / 32).min(fft_size / 2);
                 let mut energy = 0.0;
                 for bin in start_bin..end_bin {
                     energy += fft_buffer[bin].re * fft_buffer[bin].re
@@ -313,8 +316,8 @@ pub fn extract_spectral_fingerprint(
 
             // Track peak frequencies (8 bands)
             for band in 0..8 {
-                let start_bin = band * fft_size / 16;
-                let end_bin = ((band + 1) * fft_size / 16).min(fft_size / 2);
+                let start_bin = (band * fft_size) / 16;
+                let end_bin = (((band + 1) * fft_size) / 16).min(fft_size / 2);
 
                 let (peak_bin, _) = (start_bin..end_bin)
                     .map(|bin| {
@@ -325,11 +328,11 @@ pub fn extract_spectral_fingerprint(
                                 .sqrt(),
                         )
                     })
-                    .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
+                    .max_by(|a, b| a.1.total_cmp(&b.1))
                     .unwrap_or((0, 0.0));
 
                 // Convert to scaled u8 (log scale for better distribution)
-                let peak_value = (peak_bin as f32 / fft_size as f32 * 255.0) as u8;
+                let peak_value = (((peak_bin as f32) / (fft_size as f32)) * 255.0) as u8;
                 peak_bands[band] = peak_bands[band].max(peak_value);
             }
         }
@@ -338,13 +341,13 @@ pub fn extract_spectral_fingerprint(
     // Normalize frequency bands to u8
     let max_energy = frequency_bands.iter().cloned().fold(0.0f32, f32::max);
     let energy_profile = if max_energy > 0.0 {
-        frequency_bands.map(|e| (e / max_energy * 255.0) as u8)
+        frequency_bands.map(|e| ((e / max_energy) * 255.0) as u8)
     } else {
         [0; 16]
     };
 
     // Compute average loudness (simplified RMS to LUFS conversion)
-    let rms: f32 = samples.iter().map(|&s| s * s).sum::<f32>() / samples.len() as f32;
+    let rms: f32 = samples.iter().map(|&s| s * s).sum::<f32>() / (samples.len() as f32);
     let avg_loudness = ((-20.0 * (rms + 1e-10).log10()).clamp(-60.0, 0.0) + 60.0) as u8;
 
     SpectralFingerprint {
@@ -377,8 +380,8 @@ pub fn extract_dominant_frequencies(
     // Convert frequency peaks back to actual frequencies
     for i in 0..num_frequencies {
         // Map u8 back to frequency range (0-255 maps to 0Hz to Nyquist)
-        let normalized_freq = fingerprint.frequency_peaks[i] as f64 / 255.0;
-        let frequency = normalized_freq * (fingerprint.sample_rate as f64 / 2.0);
+        let normalized_freq = (fingerprint.frequency_peaks[i] as f64) / 255.0;
+        let frequency = normalized_freq * ((fingerprint.sample_rate as f64) / 2.0);
         frame_dominants.push(frequency);
     }
 
@@ -417,7 +420,7 @@ pub fn spectral_similarity(
         .energy_profile
         .iter()
         .zip(fingerprint2.energy_profile.iter())
-        .map(|(a, b)| 1.0 - (*a as f32 - *b as f32).abs() / 255.0)
+        .map(|(a, b)| 1.0 - ((*a as f32) - (*b as f32)).abs() / 255.0)
         .sum::<f32>()
         / 16.0;
 
@@ -426,13 +429,13 @@ pub fn spectral_similarity(
         .frequency_peaks
         .iter()
         .zip(fingerprint2.frequency_peaks.iter())
-        .map(|(a, b)| 1.0 - (*a as f32 - *b as f32).abs() / 255.0)
+        .map(|(a, b)| 1.0 - ((*a as f32) - (*b as f32)).abs() / 255.0)
         .sum::<f32>()
         / 8.0;
 
     // Compare loudness
-    let loudness_similarity =
-        1.0 - (fingerprint1.avg_loudness as f32 - fingerprint2.avg_loudness as f32).abs() / 255.0;
+    let loudness_similarity = 1.0
+        - ((fingerprint1.avg_loudness as f32) - (fingerprint2.avg_loudness as f32)).abs() / 255.0;
 
     // Weighted average (energy is most important for similarity)
     energy_similarity * 0.5 + peak_similarity * 0.3 + loudness_similarity * 0.2

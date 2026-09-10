@@ -1,7 +1,7 @@
 import argparse
 import shutil
 
-from shared.constants import DEMO_DIR, LIBFLO_DIR
+from shared.constants import DEMO_DIR, LIBFLO_DIR, REPO_ROOT
 from shared.format import check, ensure_tool
 from shared.run import run
 
@@ -25,7 +25,7 @@ def test():
 
 def test_wasm():
     wasm()
-    js_dir = LIBFLO_DIR / "tests" / "js"
+    js_dir = REPO_ROOT / "Tests" / "libflo" / "js"
     run(["npm", "install"], js_dir)
     esm_env = {"NODE_OPTIONS": "--experimental-vm-modules"}
     run(["npm", "test", "--", "--coverage"], js_dir, env=esm_env)

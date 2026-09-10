@@ -46,7 +46,7 @@ pub fn decode_frame_at(flo_data: &[u8], frame_index: u32) -> FloResult<Vec<f32>>
     let reader = Reader::new();
     let file = reader.read(flo_data)?;
 
-    if frame_index as usize >= file.frames.len() {
+    if (frame_index as usize) >= file.frames.len() {
         return Err(format!(
             "Frame index {} out of bounds (total frames: {})",
             frame_index,
@@ -83,37 +83,40 @@ pub fn seek_to_time(flo_data: &[u8], target_ms: u32) -> FloResult<SeekResult> {
     if file.toc.is_empty() {
         return Err("No TOC available for seeking".to_string());
     }
+    if file.frames.is_empty() {
+        return Err("TOC contains no decodable frames".to_string());
+    }
 
     // Binary search for the frame containing target_ms
     let mut frame_index = binary_search_frame(&file.toc, target_ms);
 
     // Clamp to valid range
-    if frame_index as usize >= file.frames.len() {
+    if (frame_index as usize) >= file.frames.len() {
         frame_index = (file.frames.len() - 1) as u32;
     }
 
     let toc_entry = &file.toc[frame_index as usize];
 
     // Calculate sample offset within this frame for sub-frame accuracy
-    let frame_duration_ms = if frame_index + 1 < file.toc.len() as u32 {
+    let frame_duration_ms = if frame_index + 1 < (file.toc.len() as u32) {
         file.toc[(frame_index + 1) as usize].timestamp_ms - toc_entry.timestamp_ms
     } else {
         // Last frame: estimate from duration
         let last_frame_samples = file.frames[frame_index as usize].frame_samples;
-        ((last_frame_samples as u64 * 1000) / file.header.sample_rate as u64) as u32
+        (((last_frame_samples as u64) * 1000) / (file.header.sample_rate as u64)) as u32
     };
 
     // How far into this frame should we start?
     let ms_into_frame = target_ms.saturating_sub(toc_entry.timestamp_ms);
 
     // Convert to sample offset
-    let sample_offset = ((ms_into_frame as u64 * file.header.sample_rate as u64) / 1000) as u32;
+    let sample_offset = (((ms_into_frame as u64) * (file.header.sample_rate as u64)) / 1000) as u32;
 
     // Clamp to actual frame size
     let frame = &file.frames[frame_index as usize];
     let sample_offset = sample_offset.min(frame.frame_samples);
 
-    let next_timestamp_ms = if frame_index + 1 < file.toc.len() as u32 {
+    let next_timestamp_ms = if frame_index + 1 < (file.toc.len() as u32) {
         file.toc[(frame_index + 1) as usize].timestamp_ms
     } else {
         // Estimate next frame time based on last frame samples

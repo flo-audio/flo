@@ -8,6 +8,3 @@ mod types;
 pub use decoder::StreamingDecoder;
 pub use encoder::{EncodedFrame, StreamingEncoder};
 pub use types::{DecoderState, StreamingAudioInfo};
-
-#[cfg(test)]
-mod tests;

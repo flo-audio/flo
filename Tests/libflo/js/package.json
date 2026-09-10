@@ -14,6 +14,6 @@
     "@testing-library/jest-dom": "^7.0.1"
   },
   "dependencies": {
-    "@flo-audio/libflo-audio": "file:../../pkg"
+    "@flo-audio/libflo-audio": "file:../../../Build/crates/libflo/pkg"
   }
 }

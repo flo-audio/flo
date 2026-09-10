@@ -20,25 +20,20 @@ name = "reflo"
 path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
 
+[[test]]
+name = "reflo_tests"
+path = "../../../Tests/reflo/encode_decode_tests.rs"
+
 [dependencies]
 libflo-audio = { workspace = true }
-clap = { version = "4", features = ["derive"], optional = true }
-anyhow = "1"
+clap = { workspace = true, optional = true }
+anyhow = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+chrono = { workspace = true }
 
 # Symphonia for all audio formats including WAV
-symphonia = { version = "0.5", features = [
-    "mp3",
-    "flac", 
-    "ogg",
-    "vorbis",
-    "aac",
-    "isomp4",
-    "pcm",
-    "wav",
-] }
+symphonia = { workspace = true }
 
 # WASM dependencies
 wasm-bindgen = { workspace = true, optional = true }

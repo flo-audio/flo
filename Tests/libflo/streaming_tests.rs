@@ -1,7 +1,7 @@
-//! Internal streaming tests
+//! Streaming encoder and decoder tests.
 
-use super::*;
-use crate::Encoder;
+use libflo_audio::StreamingEncoder;
+use libflo_audio::{DecoderState, Encoder, StreamingDecoder};
 
 #[test]
 fn test_streaming_encode_decode_roundtrip() {
@@ -10,7 +10,7 @@ fn test_streaming_encode_decode_roundtrip() {
 
     // Generate test audio
     let samples: Vec<f32> = (0..sample_rate as usize)
-        .map(|i| (i as f32 * 0.01).sin())
+        .map(|i| ((i as f32) * 0.01).sin())
         .collect();
 
     // Encode with standard encoder
@@ -33,7 +33,7 @@ fn test_streaming_incremental_feed() {
     let channels = 1u8;
 
     let samples: Vec<f32> = (0..sample_rate as usize)
-        .map(|i| (i as f32 * 0.02).sin())
+        .map(|i| ((i as f32) * 0.02).sin())
         .collect();
 
     let encoder = Encoder::new(sample_rate, channels, 16);
@@ -59,9 +59,9 @@ fn test_streaming_encoder_frame_output() {
     let channels = 1u8;
 
     // Generate 2.5 seconds of audio
-    let total_samples = (sample_rate as usize) * 5 / 2;
+    let total_samples = ((sample_rate as usize) * 5) / 2;
     let samples: Vec<f32> = (0..total_samples)
-        .map(|i| (i as f32 * 0.01).sin())
+        .map(|i| ((i as f32) * 0.01).sin())
         .collect();
 
     let mut encoder = StreamingEncoder::new(sample_rate, channels, 16);

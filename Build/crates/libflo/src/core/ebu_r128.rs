@@ -62,19 +62,19 @@ impl KWeighting {
         let g_db = 3.999843853973347;
         let q = 0.7071752369554196;
 
-        let k = (std::f64::consts::PI * f0 / sample_rate).tan();
-        let vh = 10.0_f64.powf(g_db / 20.0);
+        let k = ((std::f64::consts::PI * f0) / sample_rate).tan();
+        let vh = (10.0_f64).powf(g_db / 20.0);
         let vb = vh.powf(0.4996667741545416);
 
         let mut pb = [0.0; 3];
         let mut pa = [0.0; 3];
 
         let a0 = 1.0 + k / q + k * k;
-        pb[0] = (vh + vb * k / q + k * k) / a0;
-        pb[1] = 2.0 * (k * k - vh) / a0;
-        pb[2] = (vh - vb * k / q + k * k) / a0;
+        pb[0] = (vh + (vb * k) / q + k * k) / a0;
+        pb[1] = (2.0 * (k * k - vh)) / a0;
+        pb[2] = (vh - (vb * k) / q + k * k) / a0;
         pa[0] = 1.0;
-        pa[1] = 2.0 * (k * k - 1.0) / a0;
+        pa[1] = (2.0 * (k * k - 1.0)) / a0;
         pa[2] = (1.0 - k / q + k * k) / a0;
 
         let shelf_proto = Biquad::new(pb[0], pb[1], pb[2], pa[1], pa[2]);
@@ -82,10 +82,10 @@ impl KWeighting {
         // High‑pass
         let f0_hp = 38.13547087602444;
         let q_hp = 0.5003270373238773;
-        let k_hp = (std::f64::consts::PI * f0_hp / sample_rate).tan();
+        let k_hp = ((std::f64::consts::PI * f0_hp) / sample_rate).tan();
 
         let a0_hp = 1.0 + k_hp / q_hp + k_hp * k_hp;
-        let a1_hp = 2.0 * (k_hp * k_hp - 1.0) / a0_hp;
+        let a1_hp = (2.0 * (k_hp * k_hp - 1.0)) / a0_hp;
         let a2_hp = (1.0 - k_hp / q_hp + k_hp * k_hp) / a0_hp;
 
         // Numerator [1, -2, 1] as in libebur128’s combined form
@@ -115,22 +115,22 @@ fn compute_true_peak(samples: &[FloSample], channels: u8, sample_rate: u32) -> f
     }
 
     let factor = 4u32;
-    let oversample_rate = sample_rate as f64 * factor as f64;
-    let cutoff = sample_rate as f64 * 0.45;
+    let oversample_rate = (sample_rate as f64) * (factor as f64);
+    let cutoff = (sample_rate as f64) * 0.45;
     let taps = 49usize;
 
     let mut coeffs = Vec::with_capacity(taps);
-    let center = (taps - 1) as f64 / 2.0;
+    let center = ((taps - 1) as f64) / 2.0;
 
     for i in 0..taps {
-        let n = i as f64 - center;
+        let n = (i as f64) - center;
         let sinc = if n.abs() < 1e-12 {
-            2.0 * cutoff / oversample_rate
+            (2.0 * cutoff) / oversample_rate
         } else {
-            (2.0 * cutoff * n / oversample_rate).sin() / (std::f64::consts::PI * n)
+            ((2.0 * cutoff * n) / oversample_rate).sin() / (std::f64::consts::PI * n)
         };
         let window =
-            0.5 * (1.0 - (2.0 * std::f64::consts::PI * i as f64 / (taps - 1) as f64).cos());
+            0.5 * (1.0 - ((2.0 * std::f64::consts::PI * (i as f64)) / ((taps - 1) as f64)).cos());
         coeffs.push(sinc * window);
     }
 
@@ -156,12 +156,12 @@ fn compute_true_peak(samples: &[FloSample], channels: u8, sample_rate: u32) -> f
 
         for i in 0..len {
             for sub in 0..factor {
-                let pos = i as f64 + sub as f64 / factor as f64;
+                let pos = (i as f64) + (sub as f64) / (factor as f64);
                 let mut acc = 0.0;
 
                 for (k, &h) in coeffs.iter().enumerate() {
-                    let src = pos - center + k as f64;
-                    if src >= 0.0 && src < len as f64 {
+                    let src = pos - center + (k as f64);
+                    if src >= 0.0 && src < (len as f64) {
                         acc += channel_samples[src as usize] * h;
                     }
                 }
@@ -198,12 +198,12 @@ pub fn compute_ebu_r128_loudness(
     let block_400ms = hop_100ms * 4; // 400 ms window
 
     // De‑interleave
-    let frames = samples.len() / channels as usize;
+    let frames = samples.len() / (channels as usize);
     let mut per_channel: Vec<Vec<f64>> = Vec::with_capacity(channels as usize);
     for ch in 0..channels as usize {
         let mut v = Vec::with_capacity(frames);
         for i in 0..frames {
-            v.push(samples[i * channels as usize + ch] as f64);
+            v.push(samples[i * (channels as usize) + ch] as f64);
         }
         per_channel.push(v);
     }
@@ -250,7 +250,7 @@ pub fn compute_ebu_r128_loudness(
             for &y in slice {
                 sum_sq += y * y;
             }
-            energy += sum_sq / len as f64;
+            energy += sum_sq / (len as f64);
         }
 
         block_energies.push(energy);
@@ -278,7 +278,7 @@ pub fn compute_ebu_r128_loudness(
 
     // Absolute gate: −70 LUFS
     let abs_gate_lufs = -70.0;
-    let abs_gate_energy = 10.0_f64.powf((abs_gate_lufs + 0.691) / 10.0);
+    let abs_gate_energy = (10.0_f64).powf((abs_gate_lufs + 0.691) / 10.0);
 
     let gated_indices: Vec<usize> = block_energies
         .iter()
@@ -298,12 +298,12 @@ pub fn compute_ebu_r128_loudness(
 
     // Ungated integrated loudness over abs‑gated blocks
     let sum_e: f64 = gated_indices.iter().map(|&i| block_energies[i]).sum();
-    let mean_e = sum_e / gated_indices.len() as f64;
+    let mean_e = sum_e / (gated_indices.len() as f64);
     let ungated_lufs = -0.691 + 10.0 * mean_e.log10();
 
     // Relative gate: 10 LU below ungated
     let rel_gate_lufs = ungated_lufs - 10.0;
-    let rel_gate_energy = 10.0_f64.powf((rel_gate_lufs + 0.691) / 10.0);
+    let rel_gate_energy = (10.0_f64).powf((rel_gate_lufs + 0.691) / 10.0);
 
     let final_indices: Vec<usize> = gated_indices
         .into_iter()
@@ -314,7 +314,7 @@ pub fn compute_ebu_r128_loudness(
         ungated_lufs
     } else {
         let sum_e: f64 = final_indices.iter().map(|&i| block_energies[i]).sum();
-        let mean_e = sum_e / final_indices.len() as f64;
+        let mean_e = sum_e / (final_indices.len() as f64);
         -0.691 + 10.0 * mean_e.log10()
     };
 
@@ -323,15 +323,15 @@ pub fn compute_ebu_r128_loudness(
         0.0
     } else {
         let mut vals: Vec<f64> = final_indices.iter().map(|&i| block_loudness[i]).collect();
-        vals.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        vals.sort_by(|a, b| a.total_cmp(b));
 
         let n = vals.len() as f64;
-        let p10_pos = 0.10 * (n - 1.0);
+        let p10_pos = 0.1 * (n - 1.0);
         let p95_pos = 0.95 * (n - 1.0);
 
         let interp = |pos: f64, v: &Vec<f64>| {
             let i = pos.floor() as usize;
-            let frac = pos - i as f64;
+            let frac = pos - (i as f64);
             if i + 1 < v.len() {
                 v[i] * (1.0 - frac) + v[i + 1] * frac
             } else {

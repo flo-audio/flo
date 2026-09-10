@@ -30,6 +30,16 @@ impl Encoder {
 
     /// encode samples to flo format
     pub fn encode(&self, samples: &[f32], metadata: &[u8]) -> FloResult<Vec<u8>> {
+        if self.sample_rate == 0 {
+            return Err("Sample rate must be greater than zero".to_string());
+        }
+        if self.channels == 0 {
+            return Err("Channel count must be greater than zero".to_string());
+        }
+        if !samples.len().is_multiple_of(self.channels as usize) {
+            return Err("Interleaved samples must contain a complete final frame".to_string());
+        }
+
         let samples_per_frame = self.sample_rate as usize;
         let frames = self.encode_frames(samples, samples_per_frame);
 
@@ -45,15 +55,15 @@ impl Encoder {
     }
 
     fn encode_frames(&self, samples: &[f32], samples_per_frame: usize) -> Vec<Frame> {
-        let total_samples = samples.len() / self.channels as usize;
+        let total_samples = samples.len() / (self.channels as usize);
         let num_frames = total_samples.div_ceil(samples_per_frame);
 
         let mut frames = Vec::with_capacity(num_frames);
 
         for frame_idx in 0..num_frames {
-            let start = frame_idx * samples_per_frame * self.channels as usize;
+            let start = frame_idx * samples_per_frame * (self.channels as usize);
             let end =
-                ((frame_idx + 1) * samples_per_frame * self.channels as usize).min(samples.len());
+                ((frame_idx + 1) * samples_per_frame * (self.channels as usize)).min(samples.len());
 
             let frame_samples = &samples[start..end];
             let frame = self.encode_frame(frame_samples);
@@ -64,7 +74,7 @@ impl Encoder {
     }
 
     fn encode_frame(&self, samples: &[f32]) -> Frame {
-        let num_samples = samples.len() / self.channels as usize;
+        let num_samples = samples.len() / (self.channels as usize);
 
         // Check for silence
         if samples.iter().all(|&s| s.abs() < 1e-7) {
@@ -190,7 +200,7 @@ impl Encoder {
         }
 
         // Strategy 2: Fixed predictors (order 0-4, very fast)
-        for order in 0..=4.min(max_order) {
+        for order in 0..=(4).min(max_order) {
             if let Some((data, size)) = self.try_fixed_predictor(samples, order) {
                 if size < best_size {
                     best_size = size;

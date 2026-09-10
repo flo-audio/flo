@@ -1,6 +1,7 @@
 // tests/rust/mod.rs - Include all Rust test modules
 
 mod analysis_tests;
+mod boundary_tests;
 mod core_crc32_tests;
 mod core_metadata_tests;
 mod core_rice_tests;

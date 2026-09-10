@@ -34,8 +34,25 @@ pub fn decode_flo_to_wav(flo_bytes: &[u8]) -> Result<Vec<u8>, JsValue> {
 #[wasm_bindgen]
 pub fn decode_flo_to_samples(flo_bytes: &[u8]) -> Result<JsValue, JsValue> {
     match crate::decode_to_samples(flo_bytes) {
-        Ok(samples) => serde_wasm_bindgen::to_value(&samples)
-            .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e))),
+        Ok((samples, sample_rate, channels)) => {
+            let object = js_sys::Object::new();
+            js_sys::Reflect::set(
+                &object,
+                &JsValue::from_str("samples"),
+                &js_sys::Float32Array::from(&samples[..]).into(),
+            )?;
+            js_sys::Reflect::set(
+                &object,
+                &JsValue::from_str("sampleRate"),
+                &JsValue::from_f64(sample_rate as f64),
+            )?;
+            js_sys::Reflect::set(
+                &object,
+                &JsValue::from_str("channels"),
+                &JsValue::from_f64(channels as f64),
+            )?;
+            Ok(object.into())
+        }
         Err(e) => Err(JsValue::from_str(&e.to_string())),
     }
 }
@@ -81,7 +98,7 @@ pub fn get_audio_file_info(audio_bytes: &[u8]) -> Result<JsValue, JsValue> {
     let channels = codec_params.channels.map(|c| c.count()).unwrap_or(0) as u8;
     let duration_secs = codec_params
         .n_frames
-        .and_then(|frames| Some(frames as f64 / sample_rate as f64))
+        .and_then(|frames| Some((frames as f64) / (sample_rate as f64)))
         .unwrap_or(0.0);
 
     // Use a simple struct that will serialize to a plain JS object
