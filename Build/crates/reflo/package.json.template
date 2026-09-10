@@ -1,7 +1,7 @@
 {
   "name": "@flo-audio/reflo",
   "version": "0.1.2",
-  "description": "WebAssembly audio converter for the flo™ audio format",
+  "description": "WebAssembly audio converter for the flo audio format",
   "main": "reflo.js",
   "types": "reflo.d.ts",
   "files": [

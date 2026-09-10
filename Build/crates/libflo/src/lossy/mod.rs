@@ -1,4 +1,4 @@
-//! Transform-based lossy encoder for flo™
+//! Transform-based lossy encoder for flo
 //!
 //! Combines MDCT, psychoacoustic model, quantization, and entropy coding
 //! for high-quality lossy compression comparable to MP3/AAC/Vorbis.

@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/libflo",
     "crates/reflo",
+    "crates/flo-fixtures",
 ]
 
 [workspace.package]

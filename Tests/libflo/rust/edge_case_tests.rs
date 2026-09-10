@@ -1,4 +1,4 @@
-//! Edge case and stability tests for flo™ audio codec
+//! Edge case and stability tests for flo audio codec
 use libflo_audio::{Decoder, Encoder, Reader};
 
 // Helper to encode and decode

@@ -9,7 +9,7 @@ use std::path::PathBuf;
 #[command(name = "flo")]
 #[command(author = "NellowTCS")]
 #[command(version = "0.1.2")]
-#[command(about = "flo™ audio format converter", long_about = None)]
+#[command(about = "flo audio format converter", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -17,11 +17,11 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Encode audio file to flo™ format
+    /// Encode audio file to flo format
     Encode {
         /// Input audio file (mp3, wav, flac, ogg, etc.)
         input: PathBuf,
-        /// Output flo™ file
+        /// Output flo file
         output: PathBuf,
         /// Compression level (0-9, default 5)
         #[arg(short, long, default_value = "5")]
@@ -48,24 +48,24 @@ enum Commands {
         #[arg(long)]
         album: Option<String>,
     },
-    /// Decode flo™ file to WAV
+    /// Decode flo file to WAV
     Decode {
-        /// Input flo™ file
+        /// Input flo file
         input: PathBuf,
         /// Output WAV file
         output: PathBuf,
     },
-    /// Show information about a flo™ file
+    /// Show information about a flo file
     Info {
-        /// Input flo™ file
+        /// Input flo file
         input: PathBuf,
         /// Show metadata details
         #[arg(short, long)]
         metadata: bool,
     },
-    /// Display metadata from a flo™ file
+    /// Display metadata from a flo file
     Metadata {
-        /// Input flo™ file
+        /// Input flo file
         input: PathBuf,
         /// Output as JSON
         #[arg(long)]
@@ -73,7 +73,7 @@ enum Commands {
     },
     /// Analyze audio content (loudness, waveform, spectrum)
     Analysis {
-        /// Input flo™ file
+        /// Input flo file
         input: PathBuf,
         /// Show waveform peaks
         #[arg(short, long)]
@@ -85,9 +85,9 @@ enum Commands {
         #[arg(long)]
         json: bool,
     },
-    /// Validate a flo™ file
+    /// Validate a flo file
     Validate {
-        /// Input flo™ file
+        /// Input flo file
         input: PathBuf,
     },
 }
@@ -230,7 +230,7 @@ fn encode(args: EncodeArgs) -> Result<()> {
     // Build encoding options
     let mut options = if args.lossy || args.bitrate.is_some() {
         if let Some(br) = args.bitrate {
-            println!("Encoding to flo™ (lossy, ~{} kbps)...", br);
+            println!("Encoding to flo (lossy, ~{} kbps)...", br);
             EncodeOptions::lossy_bitrate(br)
         } else {
             let quality_value = match args.quality.to_lowercase().as_str() {
@@ -244,11 +244,11 @@ fn encode(args: EncodeArgs) -> Result<()> {
                     args.quality
                 ),
             };
-            println!("Encoding to flo™ (lossy, {} quality)...", args.quality);
+            println!("Encoding to flo (lossy, {} quality)...", args.quality);
             EncodeOptions::lossy(quality_value)
         }
     } else {
-        println!("Encoding to flo™ (lossless)...");
+        println!("Encoding to flo (lossless)...");
         EncodeOptions::lossless()
     };
 
@@ -293,11 +293,11 @@ fn encode(args: EncodeArgs) -> Result<()> {
 fn decode(input: &PathBuf, output: &PathBuf) -> Result<()> {
     println!("Reading {}...", input.display());
 
-    let flo_data = fs::read(input).context("Failed to read flo™ file")?;
+    let flo_data = fs::read(input).context("Failed to read flo file")?;
 
     // Get info first
     let file_info =
-        reflo::get_flo_info(&flo_data).map_err(|_| anyhow::anyhow!("Invalid flo™ file"))?;
+        reflo::get_flo_info(&flo_data).map_err(|_| anyhow::anyhow!("Invalid flo file"))?;
 
     println!("  Sample rate: {} Hz", file_info.sample_rate);
     println!("  Channels: {}", file_info.channels);
@@ -305,7 +305,7 @@ fn decode(input: &PathBuf, output: &PathBuf) -> Result<()> {
 
     println!("Decoding...");
 
-    let wav_bytes = reflo::decode_to_wav(&flo_data).context("Failed to decode flo™ file")?;
+    let wav_bytes = reflo::decode_to_wav(&flo_data).context("Failed to decode flo file")?;
 
     println!("Writing WAV...");
 
@@ -318,12 +318,12 @@ fn decode(input: &PathBuf, output: &PathBuf) -> Result<()> {
 }
 
 fn info(input: &PathBuf, show_metadata: bool) -> Result<()> {
-    let flo_data = fs::read(input).context("Failed to read flo™ file")?;
+    let flo_data = fs::read(input).context("Failed to read flo file")?;
 
     let file_info =
-        reflo::get_flo_info(&flo_data).map_err(|_| anyhow::anyhow!("Invalid flo™ file"))?;
+        reflo::get_flo_info(&flo_data).map_err(|_| anyhow::anyhow!("Invalid flo file"))?;
 
-    println!("flo™ Audio File");
+    println!("flo Audio File");
     println!("───────────────────────────────");
     println!("  Version:     {}", file_info.version);
     println!("  Sample rate: {} Hz", file_info.sample_rate);
@@ -398,7 +398,7 @@ fn info(input: &PathBuf, show_metadata: bool) -> Result<()> {
 }
 
 fn metadata(input: &PathBuf, json: bool) -> Result<()> {
-    let flo_data = fs::read(input).context("Failed to read flo™ file")?;
+    let flo_data = fs::read(input).context("Failed to read flo file")?;
 
     match reflo::get_metadata(&flo_data)? {
         None => {
@@ -424,7 +424,7 @@ fn metadata(input: &PathBuf, json: bool) -> Result<()> {
 }
 
 fn print_metadata_readable(meta: &FloMetadata) {
-    println!("flo™ Metadata");
+    println!("flo Metadata");
     println!("═══════════════════════════════════════");
 
     // Identification
@@ -597,7 +597,7 @@ fn print_metadata_readable(meta: &FloMetadata) {
     // flo-specific
     if meta.flo_encoder_version.is_some() || meta.source_format.is_some() {
         println!();
-        println!("flo™ Info");
+        println!("flo Info");
         println!("───────────────────────────────────────");
         if let Some(ref v) = meta.flo_encoder_version {
             println!("Encoder:         {}", v);
@@ -622,15 +622,15 @@ fn analysis(
     show_spectrum: bool,
     output_json: bool,
 ) -> Result<()> {
-    let flo_data = fs::read(input).context("Failed to read flo™ file")?;
+    let flo_data = fs::read(input).context("Failed to read flo file")?;
 
     // Get file info
     let file_info =
-        reflo::get_flo_info(&flo_data).map_err(|_| anyhow::anyhow!("Invalid flo™ file"))?;
+        reflo::get_flo_info(&flo_data).map_err(|_| anyhow::anyhow!("Invalid flo file"))?;
 
     // Decode directly to samples
     let (samples, _sample_rate, _channels) =
-        reflo::decode_to_samples(&flo_data).context("Failed to decode flo™ file")?;
+        reflo::decode_to_samples(&flo_data).context("Failed to decode flo file")?;
 
     // Loudness Analysis using libflo EBU R128 metrics
     let loudness = libflo_audio::compute_ebu_r128_loudness(
@@ -802,15 +802,15 @@ fn analysis(
 }
 
 fn validate(input: &PathBuf) -> Result<()> {
-    let flo_data = fs::read(input).context("Failed to read flo™ file")?;
+    let flo_data = fs::read(input).context("Failed to read flo file")?;
 
     let is_valid =
         reflo::validate_flo(&flo_data).map_err(|_| anyhow::anyhow!("Validation failed"))?;
 
     if is_valid {
-        println!("✓ {} is a valid flo™ file", input.display());
+        println!("✓ {} is a valid flo file", input.display());
         Ok(())
     } else {
-        bail!("✗ {} is not a valid flo™ file", input.display())
+        bail!("✗ {} is not a valid flo file", input.display())
     }
 }

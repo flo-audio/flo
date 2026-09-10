@@ -1,10 +1,10 @@
 # File Format Specification
 
-Technical specification for the flo™ audio format.
+Technical specification for the flo audio format.
 
 ## Overview
 
-flo™ (Fast Layered Object) is a chunked audio format supporting both lossless and lossy compression.
+flo (Fast Layered Object) is a chunked audio format supporting both lossless and lossy compression.
 
 **Key features:**
 
@@ -215,7 +215,7 @@ MessagePack-encoded metadata.
 | `comments`     | array  | COMM      |
 | `pictures`     | array  | APIC      |
 
-### flo™ Extensions
+### flo Extensions
 
 | Field              | Type   | Description                |
 | ------------------ | ------ | -------------------------- |

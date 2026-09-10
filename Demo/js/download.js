@@ -2,11 +2,11 @@ import { state } from "./state.js";
 import { log } from "./ui.js";
 
 /**
- * Download current flo™ file
+ * Download current flo file
  */
 export function downloadFlo() {
   if (!state.floData) {
-    log("No flo™ file to download", "error");
+    log("No flo file to download", "error");
     return;
   }
 

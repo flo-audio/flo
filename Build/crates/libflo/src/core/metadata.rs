@@ -1,4 +1,4 @@
-//! flo™ Metadata
+//! flo Metadata
 //!
 //! Supports most commonly used ID3v2.4 fields plus flo-unique extensions
 //! Uses MessagePack serialization for efficiency and flexibility
@@ -622,7 +622,7 @@ pub struct FloMetadata {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub section_markers: Vec<SectionMarker>,
 
-    // ==================== CREATOR INFO (flo™-unique) ====================
+    // ==================== CREATOR INFO (flo-unique) ====================
     /// Producer commentary with timestamps
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub creator_notes: Vec<CreatorNote>,
@@ -635,7 +635,7 @@ pub struct FloMetadata {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub remix_chain: Vec<RemixChainEntry>,
 
-    // ==================== COVERS (flo™-unique) ====================
+    // ==================== COVERS (flo-unique) ====================
     /// Animated cover art (GIF/WebP/short video)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub animated_cover: Option<AnimatedCover>,
@@ -648,7 +648,7 @@ pub struct FloMetadata {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub artist_signature: Option<Picture>,
 
-    // ==================== flo™-SPECIFIC ====================
+    // ==================== flo-SPECIFIC ====================
     /// flo encoder version used
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub flo_encoder_version: Option<String>,
@@ -808,7 +808,7 @@ impl FloMetadata {
         self.custom.get(key).map(|s| s.as_str())
     }
 
-    // ==================== HELPERS (flo™-unique) ====================
+    // ==================== HELPERS (flo-unique) ====================
 
     /// Add a section marker
     pub fn add_section(

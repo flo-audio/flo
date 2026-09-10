@@ -118,7 +118,7 @@ impl StreamingEncoder {
         Ok(self.pending_frames.len())
     }
 
-    /// Build a complete flo™ file from accumulated frames
+    /// Build a complete flo file from accumulated frames
     pub fn finalize(&mut self, metadata: &[u8]) -> FloResult<Vec<u8>> {
         if let Some(frame) = self.flush()? {
             self.pending_frames.push(frame);

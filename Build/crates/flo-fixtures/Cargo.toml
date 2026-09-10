@@ -1,0 +1,11 @@
+[package]
+name = "flo-fixtures"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Test fixtures and example generation for flo"
+
+[dependencies]
+anyhow = { workspace = true }
+reflo = { path = "../reflo" }

@@ -36,11 +36,11 @@ function extractPeaks(samples, numPeaks = 200) {
 }
 
 /**
- * Decode and display a flo™ file
+ * Decode and display a flo file
  */
 export async function decodeFloFile(floBytes) {
   try {
-    log("Decoding flo™ file...");
+    log("Decoding flo file...");
 
     // Save floData before sending to worker (in case buffer gets detached)
     const floData = new Uint8Array(floBytes);

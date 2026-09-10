@@ -1,6 +1,6 @@
 # Streaming Decoder
 
-The streaming decoder enables real-time playback and progressive loading of flo™ files.
+The streaming decoder enables real-time playback and progressive loading of flo files.
 
 ## Why Streaming?
 

@@ -81,8 +81,8 @@ pub fn get_audio_file_info(audio_bytes: &[u8]) -> Result<JsValue, JsValue> {
         .probe(
             &Hint::default(),
             mss,
-            &FormatOptions::default(),
-            &MetadataOptions::default(),
+            FormatOptions::default(),
+            MetadataOptions::default(),
         )
         .map_err(|e| JsValue::from_str(&format!("Symphonia error: {}", e)))?;
 
@@ -105,9 +105,13 @@ pub fn get_audio_file_info(audio_bytes: &[u8]) -> Result<JsValue, JsValue> {
 
     // Basic fields
     let sample_rate = codec_params.sample_rate.unwrap_or(0);
-    let channels = codec_params.channels.map(|c| c.count()).unwrap_or(0) as u8;
+    let channels = codec_params
+        .channels
+        .as_ref()
+        .map(|c| c.count())
+        .unwrap_or(0) as u8;
     let duration_secs = track
-        .n_frames
+        .num_frames
         .and_then(|frames| Some((frames as f64) / (sample_rate as f64)))
         .unwrap_or(0.0);
 
@@ -151,7 +155,7 @@ pub fn strip_flo_metadata(flo_bytes: &[u8]) -> Result<Vec<u8>, JsValue> {
     crate::strip_metadata_no_reencode(flo_bytes).map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
-/// Check if a flo™ file has metadata
+/// Check if a flo file has metadata
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 pub fn has_flo_metadata(flo_bytes: &[u8]) -> bool {
@@ -221,7 +225,7 @@ pub fn extract_waveform_peaks_reflo(
         .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
 }
 
-/// Get encoding information from a flo™ file
+/// Get encoding information from a flo file
 /// Returns { originalFilename, encoderSettings, encoderVersion, encodingTime, sourceFormat, encodedBy }
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]

@@ -1,12 +1,13 @@
 # Getting Started
 
-This guide will help you get up and running with flo™ quickly.
+This guide will help you get up and running with flo quickly.
 
 ## Installation
 
 ### CLI Tool (reflo)
 
 #### From Source
+
 ```bash
 # Clone the repository
 git clone https://github.com/flo-audio/flo.git
@@ -18,7 +19,9 @@ cargo install --path .
 ```
 
 #### Pre-built Binaries
+
 Download from [GitHub Releases](https://github.com/flo-audio/flo/releases):
+
 - `reflo-linux` - Linux x64
 - `reflo-macos` - macOS x64
 - `reflo-macos-arm64` - macOS Apple Silicon
@@ -27,6 +30,7 @@ Download from [GitHub Releases](https://github.com/flo-audio/flo/releases):
 ### Rust Library (libflo)
 
 Add to your `Cargo.toml`:
+
 ```toml
 [dependencies]
 libflo-audio = { version = "0.1.2" }
@@ -39,6 +43,7 @@ npm install @flo-audio/libflo
 ```
 
 Or use directly in HTML:
+
 ```html
 <script type="module">
   import init, { encode, decode } from './pkg-libflo/libflo_audio.js';
@@ -110,7 +115,7 @@ console.log(`Duration: ${fileInfo.duration_secs}s`);
 ## Choosing Lossless vs Lossy
 
 | Use Case | Mode | Quality | Compression |
-|----------|------|---------|-------------|
+| ---------- | ------ | --------- | ------------- |
 | Archival / Mastering | Lossless | Perfect | ~2-3x |
 | Music streaming | Lossy High | Excellent | ~6x |
 | Podcasts / Speech | Lossy Medium | Good | ~10x |
@@ -119,7 +124,7 @@ console.log(`Duration: ${fileInfo.duration_secs}s`);
 ### Quality Presets (Lossy)
 
 | Preset | Equivalent Bitrate | Use Case |
-|--------|-------------------|----------|
+| -------- | ------------------- | ---------- |
 | `low` | ~48 kbps | Speech, podcasts |
 | `medium` | ~128 kbps | General music |
 | `high` | ~192 kbps | Quality listening |

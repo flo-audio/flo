@@ -1,4 +1,4 @@
-//! Streaming tests for flo™ audio codec
+//! Streaming tests for flo audio codec
 //!
 //! Tests for:
 //! - StreamingDecoder with incremental data

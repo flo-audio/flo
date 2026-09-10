@@ -1,4 +1,4 @@
-//! Audio analysis functions for flo™ codec
+//! Audio analysis functions for flo codec
 
 use crate::core::metadata::WaveformData;
 use rustfft::num_complex::Complex;

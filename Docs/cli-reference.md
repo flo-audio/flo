@@ -1,6 +1,6 @@
 # CLI Reference
 
-The `reflo` command-line tool converts audio files to and from the flo™ format.
+The `reflo` command-line tool converts audio files to and from the flo format.
 
 ## Synopsis
 
@@ -11,9 +11,9 @@ reflo <COMMAND> [OPTIONS]
 ## Commands
 
 | Command | Description |
-|---------|-------------|
-| `encode` | Convert audio to flo™ format |
-| `decode` | Convert flo™ to WAV |
+| --------- | ------------- |
+| `encode` | Convert audio to flo format |
+| `decode` | Convert flo to WAV |
 | `info` | Display file information |
 | `metadata` | Show detailed metadata |
 | `validate` | Verify file integrity |
@@ -23,14 +23,16 @@ reflo <COMMAND> [OPTIONS]
 
 ## encode
 
-Convert audio files to flo™ format.
+Convert audio files to flo format.
 
 ### Usage
+
 ```bash
 reflo encode <INPUT> <OUTPUT> [OPTIONS]
 ```
 
 ### Arguments
+
 | Argument | Description |
 |----------|-------------|
 | `INPUT` | Source audio file (MP3, WAV, FLAC, OGG, AAC) |
@@ -39,20 +41,23 @@ reflo encode <INPUT> <OUTPUT> [OPTIONS]
 ### Options
 
 #### Compression Mode
+
 | Option | Description |
 |--------|-------------|
 | `--lossless` | Use lossless compression (default) |
 | `--lossy` | Use lossy compression |
 
 #### Quality (Lossy Mode)
+
 | Option | Values | Description |
 |--------|--------|-------------|
 | `--quality` | `low`, `medium`, `high`, `veryhigh`, `transparent` | Quality preset |
 | `--bitrate` | Number (kbps) | Target bitrate (e.g., `192`) |
 
 #### Metadata
+
 | Option | Description |
-|--------|-------------|
+| -------- | ------------- |
 | `--title <TEXT>` | Set track title |
 | `--artist <TEXT>` | Set artist name |
 | `--album <TEXT>` | Set album name |
@@ -88,14 +93,16 @@ reflo encode song.mp3 song.flo --cover artwork.jpg
 
 ## decode
 
-Convert flo™ files back to WAV format.
+Convert flo files back to WAV format.
 
 ### Usage
+
 ```bash
 reflo decode <INPUT> <OUTPUT>
 ```
 
 ### Arguments
+
 | Argument | Description |
 |----------|-------------|
 | `INPUT` | Source .flo file |
@@ -115,17 +122,20 @@ reflo decode song.flo song.wav
 Display file information.
 
 ### Usage
+
 ```bash
 reflo info <FILE> [OPTIONS]
 ```
 
 ### Options
+
 | Option | Description |
 |--------|-------------|
 | `--metadata` | Also show metadata |
 | `--json` | Output as JSON |
 
 ### Output Fields
+
 - Format version
 - Sample rate
 - Channels (mono/stereo)
@@ -155,11 +165,13 @@ reflo info song.flo --json
 Display detailed metadata.
 
 ### Usage
+
 ```bash
 reflo metadata <FILE> [OPTIONS]
 ```
 
 ### Options
+
 | Option | Description |
 |--------|-------------|
 | `--json` | Output as JSON |
@@ -181,11 +193,13 @@ reflo metadata song.flo --json
 Verify file integrity using CRC32 checksums.
 
 ### Usage
+
 ```bash
 reflo validate <FILE>
 ```
 
 ### Exit Codes
+
 | Code | Meaning |
 |------|---------|
 | 0 | File is valid |
@@ -210,7 +224,7 @@ fi
 ## Supported Input Formats
 
 | Format | Extension | Notes |
-|--------|-----------|-------|
+| -------- | ----------- | ------- |
 | WAV | `.wav` | PCM audio |
 | MP3 | `.mp3` | MPEG Layer 3 |
 | FLAC | `.flac` | Free Lossless Audio Codec |
@@ -230,7 +244,7 @@ fi
 ## Exit Codes
 
 | Code | Meaning |
-|------|---------|
+| ------ | --------- |
 | 0 | Success |
 | 1 | General error |
 | 2 | Invalid arguments |

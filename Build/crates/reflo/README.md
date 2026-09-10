@@ -1,11 +1,11 @@
 # reflo
 
-Audio format converter for the flo™ audio format.
+Audio format converter for the flo audio format.
 Available on crates.io! <https://crates.io/crates/reflo>
 
 ## Features
 
-- Convert audio files to/from flo™ format
+- Convert audio files to/from flo format
 - Support for multiple input formats (MP3, WAV, FLAC, OGG, AAC, etc.)
 - Both lossless and lossy compression modes
 - Metadata preservation (tags, cover art, lyrics, etc.)

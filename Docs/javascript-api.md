@@ -5,11 +5,13 @@ The libflo WASM module provides full encoding, decoding, and metadata support fo
 ## Installation
 
 ### npm
+
 ```bash
 npm install @flo-audio/libflo
 ```
 
 ### CDN / Direct
+
 ```html
 <script type="module">
   import init, * as libflo from './pkg-libflo/libflo_audio.js';
@@ -36,21 +38,21 @@ await init();
 
 ### encode()
 
-Encode audio samples to lossless flo™ format.
+Encode audio samples to lossless flo format.
 
 ```javascript
 encode(samples, sampleRate, channels, bitDepth, metadata) → Uint8Array
 ```
 
 | Parameter | Type | Description |
-|-----------|------|-------------|
+| ----------- | ------ | ------------- |
 | `samples` | `Float32Array` | Interleaved audio samples (-1.0 to 1.0) |
 | `sampleRate` | `number` | Sample rate (e.g., 44100, 48000) |
 | `channels` | `number` | Number of channels (1 or 2) |
 | `bitDepth` | `number` | Bit depth (16, 24, or 32) |
 | `metadata` | `Uint8Array \| null` | Optional MessagePack metadata |
 
-**Returns:** `Uint8Array` - Encoded flo™ data
+**Returns:** `Uint8Array` - Encoded flo data
 
 ```javascript
 const samples = new Float32Array(44100 * 2); // 1 sec stereo
@@ -118,7 +120,7 @@ const floData = encode_with_bitrate(samples, 44100, 2, 16, 192, null);
 
 ### decode()
 
-Decode flo™ data to audio samples. Auto-detects lossless vs lossy.
+Decode flo data to audio samples. Auto-detects lossless vs lossy.
 
 ```javascript
 decode(data) → Float32Array
@@ -126,7 +128,7 @@ decode(data) → Float32Array
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `data` | `Uint8Array` | flo™ file data |
+| `data` | `Uint8Array` | flo file data |
 
 **Returns:** `Float32Array` - Interleaved audio samples
 
@@ -146,6 +148,7 @@ info(data) → Object
 ```
 
 **Returns:**
+
 ```javascript
 {
   sample_rate: number,      // e.g., 44100
@@ -211,6 +214,7 @@ get_cover_art(data) → Object | null
 ```
 
 **Returns:**
+
 ```javascript
 {
   mime_type: string,  // e.g., "image/jpeg"
@@ -238,6 +242,7 @@ get_synced_lyrics(data) → Array | null
 ```
 
 **Returns:**
+
 ```javascript
 [
   { timestamp_ms: 0, text: "First line..." },
@@ -306,7 +311,7 @@ decoder.free();
 
 ## Working with Web Audio API
 
-### From AudioBuffer to flo™
+### From AudioBuffer to flo
 
 ```javascript
 async function encodeAudioBuffer(audioBuffer) {
@@ -325,7 +330,7 @@ async function encodeAudioBuffer(audioBuffer) {
 }
 ```
 
-### From flo™ to AudioBuffer
+### From flo to AudioBuffer
 
 ```javascript
 async function decodeToAudioBuffer(floData, audioContext) {
@@ -365,7 +370,8 @@ try {
 ```
 
 Common errors:
-- `"Invalid magic bytes"` - Not a flo™ file
+
+- `"Invalid magic bytes"` - Not a flo file
 - `"Unsupported version"` - File version too new
 - `"CRC32 mismatch"` - File is corrupted
 - `"Invalid frame type"` - Malformed audio data

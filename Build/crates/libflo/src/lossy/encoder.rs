@@ -161,9 +161,9 @@ impl TransformEncoder {
         }
     }
 
-    /// Encode audio samples to flo™ file format
+    /// Encode audio samples to flo file format
     ///
-    /// This produces a complete flo™ file with transform-based frames
+    /// This produces a complete flo file with transform-based frames
     pub fn encode_to_flo(&mut self, samples: &[f32], metadata: &[u8]) -> crate::FloResult<Vec<u8>> {
         let block_samples = self.block_size.samples();
         let hop_size = self.block_size.coefficients(); // 50% overlap (N = block_samples/2)

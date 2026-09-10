@@ -2,7 +2,7 @@
   "name": "@flo-audio/libflo-audio",
   "type": "module",
   "author": "NellowTCS",
-  "description": "The official encoder/decoder for the flo™ audio format",
+  "description": "The official encoder/decoder for the flo audio format",
   "version": "0.1.2",
   "license": "Apache-2.0",
   "repository": {

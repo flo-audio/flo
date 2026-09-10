@@ -63,6 +63,7 @@ let flo_data = encoder.encode(&samples, &metadata)?;
 ### Sample Format
 
 Samples must be:
+
 - `Vec<f32>` or `&[f32]`
 - Interleaved: `[L, R, L, R, ...]` for stereo
 - Normalized: `-1.0` to `1.0`
@@ -346,7 +347,7 @@ use libflo_audio::{decode, FloError};
 
 match decode(&data) {
     Ok(samples) => println!("Decoded {} samples", samples.len()),
-    Err(FloError::InvalidMagic) => println!("Not a flo™ file"),
+    Err(FloError::InvalidMagic) => println!("Not a flo file"),
     Err(FloError::UnsupportedVersion(v)) => println!("Version {} not supported", v),
     Err(FloError::CrcMismatch) => println!("File is corrupted"),
     Err(e) => println!("Error: {:?}", e),

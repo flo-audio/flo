@@ -1,11 +1,11 @@
-# flo™ Documentation
+# flo Documentation
 
-Welcome to the flo™ audio codec documentation!
+Welcome to the flo audio codec documentation!
 
 ## Quick Links
 
 | Document | Description |
-|----------|-------------|
+| ---------- | ------------- |
 | [Getting Started](getting-started.md) | Installation and first steps |
 | [CLI Reference](cli-reference.md) | Complete command-line usage |
 | [JavaScript API](javascript-api.md) | WASM API for browsers |
@@ -15,9 +15,9 @@ Welcome to the flo™ audio codec documentation!
 | [Streaming](streaming.md) | Real-time streaming decoder |
 | [Performance](performance.md) | Optimization tips |
 
-## What is flo™?
+## What is flo?
 
-flo™ (Fast Layered Object) is a modern audio codec supporting both **lossless** and **lossy** compression:
+flo (Fast Layered Object) is a modern audio codec supporting both **lossless** and **lossy** compression:
 
 - **Lossless mode**: Perfect bit-for-bit reconstruction (~2-3x compression)
 - **Lossy mode**: Psychoacoustic compression (~10-30x compression)
@@ -28,18 +28,22 @@ flo™ (Fast Layered Object) is a modern audio codec supporting both **lossless*
 - **WebAssembly**: Full browser support
 - **Rich metadata**: ID3v2.4 compatible + unique extensions
 - **Streaming**: Frame-by-frame decoding for real-time playback
-- **CLI tool**: Convert MP3, WAV, FLAC, OGG to flo™
+- **CLI tool**: Convert MP3, WAV, FLAC, OGG to flo
 
 ## Components
 
 ### libflo
+
 The core Rust library. Handles encoding, decoding, and metadata.
+
 - Available as Rust crate and WASM module
 - Pure Rust (uses `rustfft` for transforms)
 
 ### reflo
+
 The command-line converter tool.
-- Converts common formats to flo™
+
+- Converts common formats to flo
 - Also available as WASM for browser-based conversion
 
 ## License

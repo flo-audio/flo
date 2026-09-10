@@ -1,6 +1,6 @@
 //! reflo - Audio format converter library
 //!
-//! This library provides cross-platform audio conversion to and from flo™ format.
+//! This library provides cross-platform audio conversion to and from flo format.
 //! It works on native targets and can be compiled to WebAssembly.
 //!
 
@@ -14,7 +14,7 @@ use anyhow::{Context, Result};
 /// Re-export libflo types
 pub use libflo_audio::FloMetadata;
 
-/// Information about a flo™ file
+/// Information about a flo file
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct FloInfo {
     pub version: String,
@@ -30,7 +30,7 @@ pub struct FloInfo {
     pub lossy_quality: u8,
 }
 
-/// Get information about a flo™ file
+/// Get information about a flo file
 pub fn get_flo_info(data: &[u8]) -> Result<FloInfo> {
     let reader = libflo_audio::Reader::new();
     let file = reader
@@ -90,13 +90,13 @@ pub fn get_flo_info(data: &[u8]) -> Result<FloInfo> {
     })
 }
 
-/// Validate a flo™ file
+/// Validate a flo file
 pub fn validate_flo(data: &[u8]) -> Result<bool> {
     let info = get_flo_info(data)?;
     Ok(info.crc_valid)
 }
 
-/// Encoding options for converting audio to flo™ format
+/// Encoding options for converting audio to flo format
 #[derive(Debug, Clone)]
 pub struct EncodeOptions {
     /// Compression level (0-9) for lossless mode
@@ -172,14 +172,14 @@ pub struct AudioInfo {
     pub duration_secs: f32,
 }
 
-/// Encode audio file bytes to flo™ format
+/// Encode audio file bytes to flo format
 ///
 /// # Arguments
 /// * `audio_bytes` - Raw bytes of an audio file (MP3, WAV, FLAC, OGG, etc.)
 /// * `options` - Encoding options
 ///
 /// # Returns
-/// Raw bytes of the flo™ file
+/// Raw bytes of the flo file
 pub fn encode_from_audio(audio_bytes: &[u8], options: EncodeOptions) -> Result<Vec<u8>> {
     // Read audio file
     let (samples, sample_rate, channels, source_meta) =
@@ -188,7 +188,7 @@ pub fn encode_from_audio(audio_bytes: &[u8], options: EncodeOptions) -> Result<V
     encode_from_samples(&samples, sample_rate, channels, source_meta, options)
 }
 
-/// Encode raw audio samples to flo™ format
+/// Encode raw audio samples to flo format
 ///
 /// # Arguments
 /// * `samples` - Interleaved f32 samples in range [-1.0, 1.0]
@@ -198,7 +198,7 @@ pub fn encode_from_audio(audio_bytes: &[u8], options: EncodeOptions) -> Result<V
 /// * `options` - Encoding options
 ///
 /// # Returns
-/// Raw bytes of the flo™ file
+/// Raw bytes of the flo file
 pub fn encode_from_samples(
     samples: &[f32],
     sample_rate: u32,
@@ -308,10 +308,10 @@ pub fn encode_from_samples(
     Ok(flo_data)
 }
 
-/// Decode flo™ file to raw samples
+/// Decode flo file to raw samples
 ///
 /// # Arguments
-/// * `flo_bytes` - Raw bytes of a flo™ file
+/// * `flo_bytes` - Raw bytes of a flo file
 ///
 /// # Returns
 /// Tuple of (samples, sample_rate, channels) where samples are interleaved f32
@@ -320,7 +320,7 @@ pub fn decode_to_samples(flo_bytes: &[u8]) -> Result<(Vec<f32>, u32, usize)> {
     let reader = libflo_audio::Reader::new();
     let file = reader
         .read(flo_bytes)
-        .map_err(|e| anyhow::anyhow!("Invalid flo™ file: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("Invalid flo file: {}", e))?;
 
     let sample_rate = file.header.sample_rate;
     let channels = file.header.channels as usize;
@@ -366,10 +366,10 @@ pub fn decode_to_samples(flo_bytes: &[u8]) -> Result<(Vec<f32>, u32, usize)> {
     Ok((samples, sample_rate, channels))
 }
 
-/// Decode flo™ file to WAV format
+/// Decode flo file to WAV format
 ///
 /// # Arguments
-/// * `flo_bytes` - Raw bytes of a flo™ file
+/// * `flo_bytes` - Raw bytes of a flo file
 ///
 /// # Returns
 /// Raw bytes of a WAV file
@@ -379,10 +379,10 @@ pub fn decode_to_wav(flo_bytes: &[u8]) -> Result<Vec<u8>> {
     audio::write_wav_to_bytes(&samples, sample_rate, channels).context("Failed to write WAV data")
 }
 
-/// Get metadata from a flo™ file
+/// Get metadata from a flo file
 ///
 /// # Arguments
-/// * `flo_bytes` - Raw bytes of a flo™ file
+/// * `flo_bytes` - Raw bytes of a flo file
 ///
 /// # Returns
 /// Metadata if present, or None
@@ -390,7 +390,7 @@ pub fn get_metadata(flo_bytes: &[u8]) -> Result<Option<FloMetadata>> {
     let reader = libflo_audio::Reader::new();
     let file = reader
         .read(flo_bytes)
-        .map_err(|e| anyhow::anyhow!("Invalid flo™ file: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("Invalid flo file: {}", e))?;
 
     if file.metadata.is_empty() {
         return Ok(None);
@@ -424,15 +424,15 @@ pub fn get_audio_info(audio_bytes: &[u8]) -> Result<AudioInfo> {
 // Metadata Editing
 // ============================================================================
 
-/// Update metadata in a flo™ file WITHOUT re-encoding the audio!
-/// This is instant because flo™ stores metadata in a separate chunk.
+/// Update metadata in a flo file WITHOUT re-encoding the audio!
+/// This is instant because flo stores metadata in a separate chunk.
 ///
 /// # Arguments
-/// * `flo_bytes` - Original flo™ file bytes
+/// * `flo_bytes` - Original flo file bytes
 /// * `metadata` - Metadata object (will be converted to MessagePack)
 ///
 /// # Returns
-/// New flo™ file bytes with updated metadata
+/// New flo file bytes with updated metadata
 #[cfg(target_arch = "wasm32")]
 pub fn update_metadata_no_reencode(
     flo_bytes: &[u8],
@@ -447,19 +447,19 @@ pub fn update_metadata_no_reencode(
     update_metadata_bytes(flo_bytes, &meta_bytes)
 }
 
-/// Update metadata bytes in a flo™ file (internal implementation)
+/// Update metadata bytes in a flo file (internal implementation)
 pub fn update_metadata_bytes(flo_bytes: &[u8], new_metadata: &[u8]) -> Result<Vec<u8>> {
     // Use libflo's efficient update function
     libflo_audio::update_metadata_bytes(flo_bytes, new_metadata)
         .map_err(|e| anyhow::anyhow!("Failed to update metadata: {}", e))
 }
 
-/// Strip all metadata from a flo™ file WITHOUT re-encoding
+/// Strip all metadata from a flo file WITHOUT re-encoding
 pub fn strip_metadata_no_reencode(flo_bytes: &[u8]) -> Result<Vec<u8>> {
     update_metadata_bytes(flo_bytes, &[])
 }
 
-/// Check if a flo™ file has metadata (fast - reads header only)
+/// Check if a flo file has metadata (fast - reads header only)
 pub fn has_metadata(flo_bytes: &[u8]) -> bool {
     libflo_audio::has_metadata(flo_bytes)
 }

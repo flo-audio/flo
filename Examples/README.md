@@ -1,4 +1,4 @@
-# flo™ Example Files
+# flo Example Files
 
 This directory contains example `.flo` audio files demonstrating different use cases and encoding options.
 
@@ -34,7 +34,7 @@ These demonstrate the quality/size tradeoffs at different quality settings:
 
 ### Silence Detection
 
-`silence_1sec.flo` is only **125 bytes** for 1 second of silence, demonstrating flo™'s silence frame optimization.
+`silence_1sec.flo` is only **125 bytes** for 1 second of silence, demonstrating flo's silence frame optimization.
 
 ### Compression Efficiency
 
@@ -46,7 +46,7 @@ Compare the same C major chord:
 
 ### Sample Rate Support
 
-flo™ supports a wide range of sample rates:
+flo supports a wide range of sample rates:
 
 - `telephone_8khz.flo` - 8kHz (telephone)
 - Standard files - 44.1kHz (CD quality)

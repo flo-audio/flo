@@ -1,4 +1,4 @@
-//! Lossless encoding for flo™
+//! Lossless encoding for flo
 //!
 //! Uses Adaptive Linear Predictive Coding (ALPC) with rice/entropy coding.
 //! Achieves 2-3x compression on typical audio while preserving every bit.

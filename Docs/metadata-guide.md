@@ -1,6 +1,6 @@
 # Metadata Guide
 
-flo™ supports rich metadata including ID3v2.4-compatible fields and unique extensions for modern music production.
+flo supports rich metadata including ID3v2.4-compatible fields and unique extensions for modern music production.
 
 ## Quick Start
 
@@ -58,7 +58,7 @@ let flo_data = encoder.encode(&samples, &metadata)?;
 ### Identification
 
 | Field | Type | Description | ID3 |
-|-------|------|-------------|-----|
+| ------- | ------ | ------------- | ----- |
 | `title` | string | Track title | TIT2 |
 | `subtitle` | string | Subtitle/description | TIT3 |
 | `album` | string | Album name | TALB |
@@ -67,7 +67,7 @@ let flo_data = encoder.encode(&samples, &metadata)?;
 ### Track Info
 
 | Field | Type | Description | ID3 |
-|-------|------|-------------|-----|
+| ------- | ------ | ------------- | ----- |
 | `track_number` | number | Track position | TRCK |
 | `track_total` | number | Total tracks | TRCK |
 | `disc_number` | number | Disc number | TPOS |
@@ -76,7 +76,7 @@ let flo_data = encoder.encode(&samples, &metadata)?;
 ### People
 
 | Field | Type | Description | ID3 |
-|-------|------|-------------|-----|
+| ------- | ------ | ------------- | ----- |
 | `artist` | string | Main artist | TPE1 |
 | `album_artist` | string | Album artist | TPE2 |
 | `composer` | string | Composer | TCOM |
@@ -87,7 +87,7 @@ let flo_data = encoder.encode(&samples, &metadata)?;
 ### Properties
 
 | Field | Type | Description | ID3 |
-|-------|------|-------------|-----|
+| ------- | ------ | ------------- | ----- |
 | `genre` | string | Genre | TCON |
 | `mood` | string | Mood (e.g., "energetic") | TMOO |
 | `bpm` | number | Beats per minute | TBPM |
@@ -97,7 +97,7 @@ let flo_data = encoder.encode(&samples, &metadata)?;
 ### Dates
 
 | Field | Type | Description | ID3 |
-|-------|------|-------------|-----|
+| ------- | ------ | ------------- | ----- |
 | `year` | number | Release year | TYER |
 | `recording_time` | string | Recording date/time | TDRC |
 | `release_time` | string | Release date/time | TDRL |
@@ -151,7 +151,7 @@ if (cover) {
 ### Picture Types
 
 | Type | Description |
-|------|-------------|
+| ------ | ------------- |
 | `cover_front` | Front album cover (most common) |
 | `cover_back` | Back album cover |
 | `artist` | Artist photo |
@@ -162,7 +162,7 @@ if (cover) {
 
 ---
 
-## flo™ Extensions
+## flo Extensions
 
 ### Section Markers
 
@@ -184,6 +184,7 @@ const metadata = create_metadata_from_object({
 ```
 
 **Section Types:**
+
 - `intro`, `outro`
 - `verse`, `pre_chorus`, `chorus`, `post_chorus`
 - `bridge`, `breakdown`, `buildup`, `drop`

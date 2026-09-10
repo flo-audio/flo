@@ -1,6 +1,6 @@
 # libflo
 
-A Rust library for encoding and decoding flo™ audio files with WASM support.
+A Rust library for encoding and decoding flo audio files with WASM support.
 Available on crates.io! <https://crates.io/crates/libflo-audio>
 
 ## Features
@@ -60,14 +60,14 @@ libflo-audio = { version = "0.1.2" }
 | `encode_lossy(samples, sample_rate, channels, bit_depth, quality, metadata)`             | Encode audio (lossy, quality 0-4)     |
 | `encode_transform(samples, sample_rate, channels, bit_depth, quality, metadata)`         | Encode audio (lossy, quality 0.0-1.0) |
 | `encode_with_bitrate(samples, sample_rate, channels, bit_depth, bitrate_kbps, metadata)` | Encode audio (lossy, target bitrate)  |
-| `decode(data)`                                                                           | Decode flo™ file (auto-detects mode)  |
+| `decode(data)`                                                                           | Decode flo file (auto-detects mode)   |
 | `validate(data)`                                                                         | Verify file integrity (CRC32)         |
 | `info(data)`                                                                             | Get file information                  |
 | `version()`                                                                              | Get library version                   |
 
 ### Metadata Functions (No Re-encode!)
 
-flo™ stores metadata separately from audio data, enabling **instant** metadata updates without re-encoding.
+flo stores metadata separately from audio data, enabling **instant** metadata updates without re-encoding.
 
 | Function                                    | Description                                    |
 |---------------------------------------------|------------------------------------------------|
@@ -198,11 +198,11 @@ decoder.free();
 
 ## File Format
 
-flo™ follows the specification in `flo_audio.ksy`:
+flo follows the specification in `flo_audio.ksy`:
 
 ```text
 ┌─────────────────────────────────────┐
-│ MAGIC "flo™!" (4 bytes)             │
+│ MAGIC "flo!" (4 bytes)              │
 ├─────────────────────────────────────┤
 │ HEADER (66 bytes)                   │
 │   - version, sample_rate, channels  │

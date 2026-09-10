@@ -821,7 +821,7 @@ impl WasmStreamingEncoder {
         Ok(())
     }
 
-    /// Build a complete flo™ file from all accumulated frames
+    /// Build a complete flo file from all accumulated frames
     ///
     /// Call flush() first, then this method to generate the complete file.
     /// The file will contain all encoded frames with proper table-of-contents.
