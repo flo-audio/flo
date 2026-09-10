@@ -52,6 +52,7 @@ wasm-pack build --target web --features wasm --no-default-features
 ```
 
 This generates a `pkg/` directory with:
+
 - `reflo.js` - JavaScript bindings
 - `reflo_bg.wasm` - WebAssembly binary
 - TypeScript definitions
@@ -186,7 +187,7 @@ fs::write("output.wav", wav_bytes)?;
 
 The crate is structured for maximum code reuse:
 
-```
+```text
 reflo/
 ├── src/
 │   ├── lib.rs      # Core library API (cross-platform)

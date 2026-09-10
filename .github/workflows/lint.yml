@@ -25,7 +25,7 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: libflo
+          workspaces: Build/crates/libflo
 
       - name: Install just
         uses: taiki-e/install-action@v2

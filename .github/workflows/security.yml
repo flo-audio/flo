@@ -1,0 +1,55 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    paths:
+      - "Build/Cargo.lock"
+      - "Build/crates/**/Cargo.toml"
+      - "Build/Cargo.toml"
+      - ".github/workflows/security.yml"
+  pull_request:
+    paths:
+      - "Build/Cargo.lock"
+      - "Build/crates/**/Cargo.toml"
+      - "Build/Cargo.toml"
+      - ".github/workflows/security.yml"
+  schedule:
+    # Run weekly on Mondays at 07:00 UTC
+    - cron: "0 7 * * 1"
+
+jobs:
+  cargo-audit:
+    name: cargo audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      - name: Audit workspace
+        run: cargo audit
+        working-directory: Build
+
+  cargo-deny:
+    name: cargo deny
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny
+
+      - name: Check licenses and banned dependencies
+        run: cargo deny --manifest-path Build/Cargo.toml check

@@ -2,6 +2,7 @@
 
 A Rust library for encoding and decoding flo™ audio files with WASM support.
 Available on crates.io! <https://crates.io/crates/libflo-audio>
+
 ## Features
 
 - **Dual-mode compression**: Lossless (ALPC) and lossy (MDCT transform)
@@ -16,7 +17,7 @@ Available on crates.io! <https://crates.io/crates/libflo-audio>
 
 ## Module Structure
 
-```
+```text
 src/
 ├── lib.rs              # Main exports and WASM bindings
 ├── core/               # Core utilities
@@ -53,55 +54,55 @@ libflo-audio = { version = "0.1.2" }
 
 ### Functions
 
-| Function | Description |
-|----------|-------------|
-| `encode(samples, sample_rate, channels, bit_depth, metadata)` | Encode audio (lossless) |
-| `encode_lossy(samples, sample_rate, channels, bit_depth, quality, metadata)` | Encode audio (lossy, quality 0-4) |
-| `encode_transform(samples, sample_rate, channels, bit_depth, quality, metadata)` | Encode audio (lossy, quality 0.0-1.0) |
-| `encode_with_bitrate(samples, sample_rate, channels, bit_depth, bitrate_kbps, metadata)` | Encode audio (lossy, target bitrate) |
-| `decode(data)` | Decode flo™ file (auto-detects mode) |
-| `validate(data)` | Verify file integrity (CRC32) |
-| `info(data)` | Get file information |
-| `version()` | Get library version |
+| Function                                                                                 | Description                           |
+|------------------------------------------------------------------------------------------|---------------------------------------|
+| `encode(samples, sample_rate, channels, bit_depth, metadata)`                            | Encode audio (lossless)               |
+| `encode_lossy(samples, sample_rate, channels, bit_depth, quality, metadata)`             | Encode audio (lossy, quality 0-4)     |
+| `encode_transform(samples, sample_rate, channels, bit_depth, quality, metadata)`         | Encode audio (lossy, quality 0.0-1.0) |
+| `encode_with_bitrate(samples, sample_rate, channels, bit_depth, bitrate_kbps, metadata)` | Encode audio (lossy, target bitrate)  |
+| `decode(data)`                                                                           | Decode flo™ file (auto-detects mode)  |
+| `validate(data)`                                                                         | Verify file integrity (CRC32)         |
+| `info(data)`                                                                             | Get file information                  |
+| `version()`                                                                              | Get library version                   |
 
 ### Metadata Functions (No Re-encode!)
 
 flo™ stores metadata separately from audio data, enabling **instant** metadata updates without re-encoding.
 
-| Function | Description |
-|----------|-------------|
-| `update_metadata(data, new_metadata)` | Update metadata without re-encoding (WASM) |
-| `update_metadata_bytes(data, new_metadata)` | Update metadata without re-encoding (Rust) |
-| `strip_metadata(data)` | Remove all metadata (WASM) |
-| `strip_metadata_bytes(data)` | Remove all metadata (Rust) |
-| `get_metadata_bytes(data)` | Get raw metadata bytes (WASM) |
-| `get_metadata_bytes_native(data)` | Get raw metadata bytes (Rust) |
-| `has_metadata(data)` | Check if file has metadata (fast header check) |
+| Function                                    | Description                                    |
+|---------------------------------------------|------------------------------------------------|
+| `update_metadata(data, new_metadata)`       | Update metadata without re-encoding (WASM)     |
+| `update_metadata_bytes(data, new_metadata)` | Update metadata without re-encoding (Rust)     |
+| `strip_metadata(data)`                      | Remove all metadata (WASM)                     |
+| `strip_metadata_bytes(data)`                | Remove all metadata (Rust)                     |
+| `get_metadata_bytes(data)`                  | Get raw metadata bytes (WASM)                  |
+| `get_metadata_bytes_native(data)`           | Get raw metadata bytes (Rust)                  |
+| `has_metadata(data)`                        | Check if file has metadata (fast header check) |
 
 ### Streaming Functions
 
-| Function | Description |
-|----------|-------------|
-| `WasmStreamingDecoder::new()` | Create new streaming decoder |
-| `feed(data)` | Feed bytes incrementally |
-| `get_info()` | Get file info (sample rate, channels, etc.) |
-| `next_frame()` | Decode next frame (returns samples or null) |
-| `decode_available()` | Decode all buffered data at once |
-| `reset()` | Reset decoder state |
-| `free()` | Release resources |
+| Function                      | Description                                 |
+|-------------------------------|---------------------------------------------|
+| `WasmStreamingDecoder::new()` | Create new streaming decoder                |
+| `feed(data)`                  | Feed bytes incrementally                    |
+| `get_info()`                  | Get file info (sample rate, channels, etc.) |
+| `next_frame()`                | Decode next frame (returns samples or null) |
+| `decode_available()`          | Decode all buffered data at once            |
+| `reset()`                     | Reset decoder state                         |
+| `free()`                      | Release resources                           |
 
 ### Structs
 
-| Struct | Description |
-|--------|-------------|
-| `Encoder` | Lossless encoder instance |
-| `LossyEncoder` | Transform-based lossy encoder |
-| `Decoder` | Lossless decoder instance |
-| `LossyDecoder` | Transform-based decoder |
+| Struct          | Description                                               |
+|-----------------|-----------------------------------------------------------|
+| `Encoder`       | Lossless encoder instance                                 |
+| `LossyEncoder`  | Transform-based lossy encoder                             |
+| `Decoder`       | Lossless decoder instance                                 |
+| `LossyDecoder`  | Transform-based decoder                                   |
 | `QualityPreset` | Quality levels (Low, Medium, High, VeryHigh, Transparent) |
-| `Reader` | Low-level binary parser |
-| `Writer` | Low-level binary writer |
-| `AudioInfo` | File information container |
+| `Reader`        | Low-level binary parser                                   |
+| `Writer`        | Low-level binary writer                                   |
+| `AudioInfo`     | File information container                                |
 
 ## Quick Start
 
@@ -199,7 +200,7 @@ decoder.free();
 
 flo™ follows the specification in `flo_audio.ksy`:
 
-```
+```text
 ┌─────────────────────────────────────┐
 │ MAGIC "flo™!" (4 bytes)             │
 ├─────────────────────────────────────┤
@@ -224,13 +225,13 @@ flo™ follows the specification in `flo_audio.ksy`:
 
 ### Frame Types
 
-| Value | Type | Description |
-|-------|------|-------------|
-| 0 | Silence | No audio data stored |
-| 1-12 | ALPC | Lossless LPC with order N |
-| 253 | Transform | MDCT-based lossy encoding |
-| 254 | Raw | Uncompressed PCM |
-| 255 | Reserved | Future use |
+| Value | Type      | Description               |
+|-------|-----------|---------------------------|
+| 0     | Silence   | No audio data stored      |
+| 1-12  | ALPC      | Lossless LPC with order N |
+| 253   | Transform | MDCT-based lossy encoding |
+| 254   | Raw       | Uncompressed PCM          |
+| 255   | Reserved  | Future use                |
 
 ## Building
 

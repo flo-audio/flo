@@ -39,7 +39,7 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: reflo
+          workspaces: Build/crates/reflo
 
       - name: Install just
         uses: taiki-e/install-action@v2
@@ -53,7 +53,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: reflo/target/release/${{ matrix.binary }}
+          path: Build/crates/reflo/target/release/${{ matrix.binary }}
           retention-days: 7
 
   build-cli-arm:
@@ -71,13 +71,13 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: reflo
+          workspaces: Build/crates/reflo
 
       - name: Build for ARM64
-        run: cd reflo && cargo build --release --target aarch64-apple-darwin
+        run: cd Build/crates/reflo && cargo build --release --target aarch64-apple-darwin
 
       - name: Upload ARM64 artifact
         uses: actions/upload-artifact@v4
         with:
           name: flo-macos-arm64
-          path: reflo/target/aarch64-apple-darwin/release/flo
+          path: Build/crates/reflo/target/aarch64-apple-darwin/release/flo

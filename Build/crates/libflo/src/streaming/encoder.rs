@@ -1,4 +1,4 @@
-use crate::core::{ChannelData, FloResult, FrameType};
+use crate::core::{ChannelData, FloResult, FrameType, ResidualEncoding};
 use crate::lossless::Encoder;
 use crate::{compute_crc32, Reader, MAGIC};
 
@@ -106,6 +106,16 @@ impl StreamingEncoder {
         self.sample_buffer.clear();
 
         Ok(Some(encoded))
+    }
+
+    /// Flush any remaining partial frame into the pending frame buffer.
+    ///
+    /// Returns the number of frames now ready via [`Self::next_frame`].
+    pub fn flush_into_frames(&mut self) -> FloResult<usize> {
+        if let Some(frame) = self.flush()? {
+            self.pending_frames.push(frame);
+        }
+        Ok(self.pending_frames.len())
     }
 
     /// Build a complete flo™ file from accumulated frames
@@ -245,10 +255,16 @@ impl StreamingEncoder {
             FrameType::Silence => vec![],
             FrameType::Raw | FrameType::Transform => ch.residuals.clone(),
             _ => {
+                // ALPC: order, predictor coeffs, shift bits, residual encoding, rice param, residuals
                 let mut data = Vec::new();
-                data.push(ch.rice_parameter);
+                data.push(ch.predictor_coeffs.len() as u8);
                 for &coeff in &ch.predictor_coeffs {
                     data.extend_from_slice(&coeff.to_le_bytes());
+                }
+                data.push(ch.shift_bits);
+                data.push(ch.residual_encoding as u8);
+                if ch.residual_encoding == ResidualEncoding::Rice {
+                    data.push(ch.rice_parameter);
                 }
                 data.extend_from_slice(&ch.residuals);
                 data

@@ -9,7 +9,10 @@
  * - Integration with WasmStreamingDecoder
  */
 
-import * as libflo from '../pkg/libflo_audio.js';
+import { readFileSync } from 'node:fs';
+import * as libflo from '../../pkg/libflo_audio.js';
+
+libflo.initSync({ module: readFileSync(new URL('../../pkg/libflo_audio_bg.wasm', import.meta.url)) });
 
 describe('WasmStreamingEncoder', () => {
   describe('creation and initialization', () => {
@@ -137,15 +140,13 @@ describe('WasmStreamingEncoder', () => {
       }
 
       // Low compression (faster)
-      const encoder0 = new libflo.WasmStreamingEncoder(44100, 1, 16);
-      encoder0.with_compression(0);
+      const encoder0 = new libflo.WasmStreamingEncoder(44100, 1, 16).with_compression(0);
       encoder0.push_samples(samples);
       encoder0.flush();
       const file0 = encoder0.finalize(null);
       
       // High compression (slower)
-      const encoder9 = new libflo.WasmStreamingEncoder(44100, 1, 16);
-      encoder9.with_compression(9);
+      const encoder9 = new libflo.WasmStreamingEncoder(44100, 1, 16).with_compression(9);
       encoder9.push_samples(samples);
       encoder9.flush();
       const file9 = encoder9.finalize(null);

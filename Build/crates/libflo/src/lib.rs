@@ -741,19 +741,23 @@ impl WasmStreamingEncoder {
     /// # Returns
     /// Encoded frame object or null
     #[wasm_bindgen]
-    pub fn next_frame(&mut self) -> Option<JsValue> {
-        self.inner.next_frame().map(|frame| {
-            let obj = js_sys::Object::new();
-            let _ = js_sys::Reflect::set(&obj, &"index".into(), &frame.index.into());
-            let _ = js_sys::Reflect::set(&obj, &"timestamp_ms".into(), &frame.timestamp_ms.into());
-            let _ = js_sys::Reflect::set(
-                &obj,
-                &"data".into(),
-                &js_sys::Uint8Array::from(&frame.data[..]).into(),
-            );
-            let _ = js_sys::Reflect::set(&obj, &"samples".into(), &frame.samples.into());
-            obj.into()
-        })
+    pub fn next_frame(&mut self) -> JsValue {
+        match self.inner.next_frame() {
+            Some(frame) => {
+                let obj = js_sys::Object::new();
+                let _ = js_sys::Reflect::set(&obj, &"index".into(), &frame.index.into());
+                let _ =
+                    js_sys::Reflect::set(&obj, &"timestamp_ms".into(), &frame.timestamp_ms.into());
+                let _ = js_sys::Reflect::set(
+                    &obj,
+                    &"data".into(),
+                    &js_sys::Uint8Array::from(&frame.data[..]).into(),
+                );
+                let _ = js_sys::Reflect::set(&obj, &"samples".into(), &frame.samples.into());
+                obj.into()
+            }
+            None => JsValue::NULL,
+        }
     }
 
     /// Get number of samples currently buffered
@@ -783,7 +787,8 @@ impl WasmStreamingEncoder {
     /// Error if encoding fails
     #[wasm_bindgen]
     pub fn flush(&mut self) -> Result<(), JsValue> {
-        self.inner.flush().map_err(to_js_err).map(|_| ())
+        self.inner.flush_into_frames().map_err(to_js_err)?;
+        Ok(())
     }
 
     /// Build a complete flo™ file from all accumulated frames

@@ -9,12 +9,11 @@
     "test:coverage": "jest --coverage"
   },
   "devDependencies": {
-    "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.7.0",
-    "@testing-library/jest-dom": "^6.1.5"
+    "jest": "^30.5.1",
+    "jest-environment-jsdom": "^30.5.1",
+    "@testing-library/jest-dom": "^7.0.1"
   },
   "dependencies": {
     "@flo-audio/libflo-audio": "file:../../pkg"
   }
 }
-

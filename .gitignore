@@ -25,6 +25,7 @@ pkg-reflo/
 pkg-libflo/
 node_modules/
 dist/
+Build/crates/libflo/tests/js/coverage/
 
 # Python build scripts
 **/__pycache__/

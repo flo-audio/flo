@@ -15,12 +15,12 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Publish libflo-audio
-        run: cargo publish --manifest-path libflo/Cargo.toml
+        run: cargo publish --manifest-path Build/crates/libflo/Cargo.toml
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
       - name: Publish reflo
-        run: cargo publish --manifest-path reflo/Cargo.toml
+        run: cargo publish --manifest-path Build/crates/reflo/Cargo.toml
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
@@ -50,7 +50,7 @@ jobs:
         run: just libflo wasm
 
       - name: Publish libflo-audio to npm
-        run: cd libflo/pkg && npm publish --access public --provenance
+        run: cd Build/crates/libflo/pkg && npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
 
@@ -58,6 +58,6 @@ jobs:
         run: just reflo wasm
 
       - name: Publish reflo to npm
-        run: cd reflo/pkg && npm publish --access public --provenance
+        run: cd Build/crates/reflo/pkg && npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}

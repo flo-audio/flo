@@ -27,7 +27,8 @@ def test_wasm():
     wasm()
     js_dir = LIBFLO_DIR / "tests" / "js"
     run(["npm", "install"], js_dir)
-    run(["npm", "test", "--", "--coverage"], js_dir)
+    esm_env = {"NODE_OPTIONS": "--experimental-vm-modules"}
+    run(["npm", "test", "--", "--coverage"], js_dir, env=esm_env)
 
 
 def build():

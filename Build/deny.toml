@@ -1,0 +1,53 @@
+# cargo-deny configuration for the flo workspace.
+# Run:  just deny
+# Docs: https://embarkstudios.github.io/cargo-deny/
+
+[graph]
+# Evaluate the full dependency graph, including dev-dependencies.
+all-features = true
+
+# ---------------------------------------------------------------------------
+# Licenses
+# ---------------------------------------------------------------------------
+
+[licenses]
+# Confidence threshold for license detection (0.0 - 1.0).
+confidence-threshold = 0.8
+
+# Every license in the dependency tree must match one of these.
+allow = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "MIT",
+    "MIT-0",
+    "BSD-3-Clause",
+    "MPL-2.0",
+    "Unicode-3.0",
+    "Zlib",
+    "CC0-1.0",
+    "Unlicense",
+]
+
+# ---------------------------------------------------------------------------
+# Bans
+# ---------------------------------------------------------------------------
+
+[bans]
+# Warn on duplicate crate versions in the dependency tree.
+multiple-versions = "warn"
+
+# Crates that must never appear in the dependency tree.
+deny = [
+    # openssl: requires a system library.
+    { name = "openssl" },
+    { name = "openssl-sys" },
+]
+
+# ---------------------------------------------------------------------------
+# Sources
+# ---------------------------------------------------------------------------
+
+[sources]
+# Packages from these registries are allowed; git/local sources are allowed
+# only for the workspace's own path dependencies.
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

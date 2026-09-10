@@ -23,7 +23,7 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: libflo
+          workspaces: Build/crates/libflo
 
       - name: Install just
         uses: taiki-e/install-action@v2
@@ -53,13 +53,13 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: libflo
+          workspaces: Build/crates/libflo
 
       - name: Cache npm
         uses: actions/cache@v4
         with:
-          path: libflo/tests/js/node_modules
-          key: ${{ runner.os }}-npm-${{ hashFiles('libflo/tests/js/package.json') }}
+          path: Build/crates/libflo/tests/js/node_modules
+          key: ${{ runner.os }}-npm-${{ hashFiles('Build/crates/libflo/tests/js/package.json') }}
           restore-keys: |
             ${{ runner.os }}-npm-
 

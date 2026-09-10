@@ -3,6 +3,8 @@
 #   just              List available commands
 #   just build        Build native libflo + reflo
 #   just check        Run all checks (format, lint, test, build)
+#   just deny         Run cargo-deny license/bans check
+#   just audit        Run cargo-audit vulnerability scan
 #   just serve        Serve the web demo
 
 scripts := "scripts"
@@ -57,5 +59,11 @@ clean:
 
 check:
 	@cd {{scripts}} && python3 flo_build.py
+
+deny:
+	@cd {{scripts}} && python3 flo_build.py deny
+
+audit:
+	@cd {{scripts}} && python3 flo_build.py audit
 
 all: setup check

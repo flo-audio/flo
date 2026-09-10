@@ -1,0 +1,40 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/libflo",
+    "crates/reflo",
+]
+
+[workspace.package]
+version = "0.1.2"
+edition = "2021"
+authors = ["NellowTCS"]
+license = "Apache-2.0"
+repository = "https://github.com/Audiflo/flo"
+
+[workspace.dependencies]
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_bytes = "0.11"
+rmp-serde = "1.3"
+serde-wasm-bindgen = "0.6"
+
+# WASM
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+console_error_panic_hook = "0.1.6"
+
+# Internal crates
+libflo-audio = { path = "crates/libflo", version = "0.1.2" }
+
+# Speed optimizations
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+
+# WASM-specific optimizations
+[profile.release.package."*"]
+opt-level = 3

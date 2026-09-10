@@ -1,0 +1,30 @@
+[package]
+name = "libflo-audio"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The official encoder/decoder for the flo™ audio format"
+keywords = ["audio", "codec", "wasm", "encoder", "decoder"]
+readme = "README.md"
+homepage = "https://github.com/Audiflo/flo"
+categories = ["multimedia::audio", "multimedia::encoding", "wasm"]
+exclude = ["pkg/"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = { workspace = true }
+console_error_panic_hook = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde-wasm-bindgen = { workspace = true }
+rmp-serde = { workspace = true }
+serde_bytes = { workspace = true }
+# I would make this from scratch, but I don't hate myself :P
+rustfft = "6.2"
+blake3 = "1.5"
+js-sys = { workspace = true }
+web-sys = { version = "0.3", features = ["console"] }

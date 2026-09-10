@@ -13,7 +13,7 @@ git clone https://github.com/flo-audio/flo.git
 cd flo
 
 # Build and install
-cd reflo
+cd Build/crates/reflo
 cargo install --path .
 ```
 
