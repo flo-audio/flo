@@ -25,8 +25,13 @@ jobs:
         with:
           workspaces: libflo
 
+      - name: Install just
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just
+
       - name: Run Rust tests
-        run: cd libflo && cargo test --release --all-features
+        run: just libflo test
 
   test-wasm:
     name: Test libflo (WASM/Jest)
@@ -58,16 +63,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-npm-
 
+      - name: Install just
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just
+
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
-      - name: Build WASM
-        run: cd libflo && wasm-pack build --release --target web
-
-      - name: Install dependencies
-        run: cd libflo/tests/js && npm install
-
-      - name: Run Jest tests
-        run: cd libflo/tests/js && npm test -- --coverage
-
-
+      - name: Build WASM and run Jest tests
+        run: just libflo test_wasm

@@ -34,14 +34,20 @@ A modern audio codec supporting both **lossless** and **lossy** compression.
 ### Build
 
 ```bash
-# Build everything (native, CLI, WASM)
-./scripts/build.sh
+# Build everything (native libflo + reflo CLI)
+just build
 
-# Build only CLI converter
-./scripts/build.sh reflo
+# Build only the CLI converter
+just reflo build
 
 # Build only WASM for web
-./scripts/build.sh wasm
+just wasm
+```
+
+Install the `flo` CLI:
+
+```bash
+just install
 ```
 
 ### CLI Usage
@@ -81,8 +87,11 @@ flo validate music.flo
 ### Web Demo
 
 ```bash
-# Start dev server
-./scripts/serve.sh
+# Start dev server (default port 8080)
+just serve
+
+# Custom port
+just serve 9000
 
 # Open http://localhost:8080
 ```

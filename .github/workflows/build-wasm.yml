@@ -28,11 +28,16 @@ jobs:
         with:
           workspaces: libflo
 
+      - name: Install just
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just
+
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
       - name: Build WASM
-        run: cd libflo && wasm-pack build --release --target web
+        run: just libflo wasm
 
       - name: Upload WASM artifacts
         uses: actions/upload-artifact@v4

@@ -41,14 +41,19 @@ jobs:
         with:
           workspaces: reflo
 
+      - name: Install just
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just
+
       - name: Build reflo (release)
-        run: cd reflo && cargo build --release
+        run: just reflo build
 
       - name: Upload CLI artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: reflo/target/release/${{ matrix.binary }}          
+          path: reflo/target/release/${{ matrix.binary }}
           retention-days: 7
 
   build-cli-arm:

@@ -141,7 +141,7 @@ fn binary_search_frame(toc: &[TocEntry], target_ms: u32) -> u32 {
 
     // Binary search for the rightmost frame where timestamp_ms <= target_ms
     while left < right {
-        let mid = left + (right - left + 1) / 2;
+        let mid = left + (right - left).div_ceil(2);
 
         if toc[mid].timestamp_ms <= target_ms {
             left = mid;
@@ -163,7 +163,7 @@ fn decode_frame_lossless(file: &FloFile, frame_index: usize) -> FloResult<Vec<f3
     let temp_file = FloFile {
         header: file.header.clone(),
         toc: file.toc.clone(),
-        frames: frames,
+        frames,
         extra: vec![],
         metadata: file.metadata.clone(),
     };

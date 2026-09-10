@@ -26,5 +26,9 @@ pkg-libflo/
 node_modules/
 dist/
 
+# Python build scripts
+**/__pycache__/
+*.pyc
+
 .codesandbox/
 .vscode/

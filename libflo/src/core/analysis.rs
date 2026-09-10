@@ -79,7 +79,9 @@ pub fn extract_waveform_peaks(
             2 => {
                 // Stereo: find peaks for each channel
                 let (left_peak, right_peak) = window_samples
-                    .chunks_exact(2)
+                    .as_chunks::<2>()
+                    .0
+                    .iter()
                     .map(|chunk| (chunk[0].abs(), chunk[1].abs()))
                     .fold((0.0f32, 0.0f32), |(l_max, r_max), (l, r)| {
                         (l_max.max(l), r_max.max(r))
@@ -160,7 +162,7 @@ pub fn extract_waveform_rms(
             }
             2 => {
                 // Stereo RMS
-                let (left_sum, right_sum, count) = window_samples.chunks_exact(2).fold(
+                let (left_sum, right_sum, count) = window_samples.as_chunks::<2>().0.iter().fold(
                     (0.0f64, 0.0f64, 0usize),
                     |(l_sum, r_sum, count), chunk| {
                         (

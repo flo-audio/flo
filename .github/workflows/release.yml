@@ -38,14 +38,16 @@ jobs:
           node-version: '18'
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Install just
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just
+
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
       - name: Build libflo WASM
-        run: |
-          cd libflo
-          wasm-pack build --release --target web
-          cp package.json.template pkg/package.json
+        run: just libflo wasm
 
       - name: Publish libflo-audio to npm
         run: cd libflo/pkg && npm publish --access public --provenance
@@ -53,10 +55,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
 
       - name: Build reflo WASM
-        run: |
-          cd reflo
-          wasm-pack build --release --target web --features wasm
-          cp package.json.template pkg/package.json
+        run: just reflo wasm
 
       - name: Publish reflo to npm
         run: cd reflo/pkg && npm publish --access public --provenance
