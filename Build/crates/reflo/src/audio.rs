@@ -1,12 +1,13 @@
 use anyhow::{Context, Result};
 use std::io::{Cursor, Write};
 use std::path::Path;
-use symphonia::core::audio::{AudioBufferRef, Signal};
-use symphonia::core::codecs::{DecoderOptions, CODEC_TYPE_NULL};
+use symphonia::core::audio::GenericAudioBufferRef;
+use symphonia::core::codecs::audio::{well_known, AudioDecoderOptions, CODEC_ID_NULL_AUDIO};
+use symphonia::core::common::Limit;
+use symphonia::core::formats::probe::Hint;
 use symphonia::core::formats::FormatOptions;
 use symphonia::core::io::MediaSourceStream;
-use symphonia::core::meta::{MetadataOptions, StandardTagKey, Value};
-use symphonia::core::probe::Hint;
+use symphonia::core::meta::{MetadataOptions, StandardTag, StandardVisualKey};
 
 /// Metadata extracted from audio file
 #[derive(Debug, Default)]
@@ -65,17 +66,14 @@ fn read_from_source_with_metadata(
     }
 
     // Enable metadata reading
-    let meta_opts = MetadataOptions {
-        limit_metadata_bytes: symphonia::core::meta::Limit::Maximum(16 * 1024 * 1024), // 16MB max
-        limit_visual_bytes: symphonia::core::meta::Limit::Maximum(16 * 1024 * 1024),
-    };
+    let meta_opts = MetadataOptions::default()
+        .limit_tag_bytes(Limit::Maximum(16 * 1024 * 1024)) // 16MB max
+        .limit_visual_bytes(Limit::Maximum(16 * 1024 * 1024));
 
     // Probe the format
-    let mut probed = symphonia::default::get_probe()
-        .format(&hint, mss, &FormatOptions::default(), &meta_opts)
+    let mut format = symphonia::default::get_probe()
+        .probe(&hint, mss, FormatOptions::default(), meta_opts)
         .context("Unsupported audio format")?;
-
-    let mut format = probed.format;
 
     // Extract metadata
     let mut metadata = AudioMetadata {
@@ -83,55 +81,57 @@ fn read_from_source_with_metadata(
         ..Default::default()
     };
 
-    // Check metadata from probe result
-    if let Some(meta_rev) = probed.metadata.get() {
-        if let Some(current) = meta_rev.current() {
-            extract_metadata_tags(current, &mut metadata);
-        }
-    }
-
-    // Also check format metadata
-    if let Some(meta_rev) = format.metadata().current() {
-        extract_metadata_tags(meta_rev, &mut metadata);
+    // Check metadata from the format reader
+    if let Some(current) = format.metadata().current() {
+        extract_metadata_tags(current, &mut metadata);
     }
 
     // Find the first audio track
     let track = format
         .tracks()
         .iter()
-        .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
+        .find(|t| {
+            t.codec_params
+                .as_ref()
+                .and_then(|p| p.audio())
+                .is_some_and(|a| a.codec != CODEC_ID_NULL_AUDIO)
+        })
         .context("No audio track found")?;
+
+    let codec_params = track
+        .codec_params
+        .as_ref()
+        .context("No codec parameters")?
+        .audio()
+        .context("No audio codec")?;
 
     // If we didn't get format from extension, try to detect from codec
     if metadata.source_format.is_none() {
-        let codec_type = track.codec_params.codec;
+        let codec_type = codec_params.codec;
         metadata.source_format = Some(match codec_type {
-            symphonia::core::codecs::CODEC_TYPE_FLAC => "FLAC".to_string(),
-            symphonia::core::codecs::CODEC_TYPE_PCM_S16LE
-            | symphonia::core::codecs::CODEC_TYPE_PCM_S16BE
-            | symphonia::core::codecs::CODEC_TYPE_PCM_S24LE
-            | symphonia::core::codecs::CODEC_TYPE_PCM_S32LE => "WAV".to_string(),
-            symphonia::core::codecs::CODEC_TYPE_MP3 => "MP3".to_string(),
-            symphonia::core::codecs::CODEC_TYPE_VORBIS => "OGG".to_string(),
-            symphonia::core::codecs::CODEC_TYPE_AAC => "AAC".to_string(),
+            well_known::CODEC_ID_FLAC => "FLAC".to_string(),
+            well_known::CODEC_ID_PCM_S16LE
+            | well_known::CODEC_ID_PCM_S16BE
+            | well_known::CODEC_ID_PCM_S24LE
+            | well_known::CODEC_ID_PCM_S32LE => "WAV".to_string(),
+            well_known::CODEC_ID_MP3 => "MP3".to_string(),
+            well_known::CODEC_ID_VORBIS => "OGG".to_string(),
+            well_known::CODEC_ID_AAC => "AAC".to_string(),
             _ => "UNKNOWN".to_string(),
         });
     }
 
     let track_id = track.id;
-    let sample_rate = track
-        .codec_params
-        .sample_rate
-        .context("Unknown sample rate")?;
-    let channels = track
-        .codec_params
+    let sample_rate = codec_params.sample_rate.context("Unknown sample rate")?;
+    let channels = codec_params
         .channels
+        .clone()
         .context("Unknown channel count")?
         .count();
 
     // Create decoder
     let mut decoder = symphonia::default::get_codecs()
-        .make(&track.codec_params, &DecoderOptions::default())
+        .make_audio_decoder(codec_params, &AudioDecoderOptions::default())
         .context("Failed to create decoder")?;
 
     let mut samples = Vec::new();
@@ -139,7 +139,8 @@ fn read_from_source_with_metadata(
     // Decode all packets
     loop {
         let packet = match format.next_packet() {
-            Ok(packet) => packet,
+            Ok(Some(packet)) => packet,
+            Ok(None) => break,
             Err(symphonia::core::errors::Error::IoError(e))
                 if e.kind() == std::io::ErrorKind::UnexpectedEof =>
             {
@@ -148,7 +149,7 @@ fn read_from_source_with_metadata(
             Err(e) => return Err(e).context("Error reading packet"),
         };
 
-        if packet.track_id() != track_id {
+        if packet.track_id != track_id {
             continue;
         }
 
@@ -159,7 +160,7 @@ fn read_from_source_with_metadata(
         };
 
         // Convert to f32
-        append_samples(&decoded, &mut samples, channels);
+        append_samples(&decoded, &mut samples);
     }
 
     Ok((samples, sample_rate, channels, metadata))
@@ -169,109 +170,50 @@ fn extract_metadata_tags(
     meta: &symphonia::core::meta::MetadataRevision,
     metadata: &mut AudioMetadata,
 ) {
-    for tag in meta.tags() {
-        if let Some(std_key) = tag.std_key {
-            let value_str = match &tag.value {
-                Value::String(s) => Some(s.clone()),
-                _ => None,
-            };
-
-            match std_key {
-                StandardTagKey::TrackTitle => metadata.title = value_str,
-                StandardTagKey::Artist => metadata.artist = value_str,
-                StandardTagKey::Album => metadata.album = value_str,
-                StandardTagKey::AlbumArtist => metadata.album_artist = value_str,
-                StandardTagKey::Date | StandardTagKey::ReleaseDate => {
-                    if let Some(s) = value_str {
-                        // Try to parse year from date string
-                        if let Ok(year) = s.chars().take(4).collect::<String>().parse::<i32>() {
-                            metadata.year = Some(year);
-                        }
+    for tag in &meta.media.tags {
+        if let Some(std_tag) = &tag.std {
+            match std_tag {
+                StandardTag::TrackTitle(title) => metadata.title = Some(title.to_string()),
+                StandardTag::Artist(artist) => metadata.artist = Some(artist.to_string()),
+                StandardTag::Album(album) => metadata.album = Some(album.to_string()),
+                StandardTag::AlbumArtist(artist) => {
+                    metadata.album_artist = Some(artist.to_string())
+                }
+                StandardTag::RecordingYear(year) | StandardTag::ReleaseYear(year) => {
+                    metadata.year = Some(*year as i32);
+                }
+                StandardTag::RecordingDate(date) | StandardTag::ReleaseDate(date) => {
+                    if let Ok(year) = date.chars().take(4).collect::<String>().parse::<i32>() {
+                        metadata.year = Some(year);
                     }
                 }
-                StandardTagKey::Genre => metadata.genre = value_str,
-                StandardTagKey::TrackNumber => {
-                    if let Value::UnsignedInt(n) = tag.value {
-                        metadata.track_number = Some(n as u32);
-                    } else if let Some(s) = value_str {
-                        // Handle "1/12" format
-                        if let Some(num) = s.split('/').next().and_then(|n| n.parse().ok()) {
-                            metadata.track_number = Some(num);
-                        }
-                    }
-                }
-                StandardTagKey::TrackTotal => {
-                    if let Value::UnsignedInt(n) = tag.value {
-                        metadata.track_total = Some(n as u32);
-                    }
-                }
-                StandardTagKey::DiscNumber => {
-                    if let Value::UnsignedInt(n) = tag.value {
-                        metadata.disc_number = Some(n as u32);
-                    }
-                }
-                StandardTagKey::Composer => metadata.composer = value_str,
-                StandardTagKey::Comment => metadata.comment = value_str,
-                StandardTagKey::Bpm => {
-                    if let Value::UnsignedInt(n) = tag.value {
-                        metadata.bpm = Some(n as f32);
-                    } else if let Some(s) = value_str {
-                        metadata.bpm = s.parse().ok();
-                    }
-                }
+                StandardTag::Genre(genre) => metadata.genre = Some(genre.to_string()),
+                StandardTag::TrackNumber(n) => metadata.track_number = Some(*n as u32),
+                StandardTag::TrackTotal(n) => metadata.track_total = Some(*n as u32),
+                StandardTag::DiscNumber(n) => metadata.disc_number = Some(*n as u32),
+                StandardTag::Composer(composer) => metadata.composer = Some(composer.to_string()),
+                StandardTag::Comment(comment) => metadata.comment = Some(comment.to_string()),
+                StandardTag::Bpm(bpm) => metadata.bpm = Some(*bpm as f32),
                 _ => {}
             }
         }
     }
 
     // Extract cover art from visuals
-    for visual in meta.visuals() {
-        if visual.usage == Some(symphonia::core::meta::StandardVisualKey::FrontCover)
+    for visual in &meta.media.visuals {
+        if matches!(visual.usage, Some(StandardVisualKey::FrontCover))
             || metadata.cover_art.is_none()
         {
-            let mime = visual.media_type.clone();
+            let mime = visual.media_type.clone().unwrap_or_default();
             metadata.cover_art = Some((mime, visual.data.to_vec()));
         }
     }
 }
 
-fn append_samples(buffer: &AudioBufferRef, samples: &mut Vec<f32>, channels: usize) {
-    match buffer {
-        AudioBufferRef::F32(buf) => {
-            for frame in 0..buf.frames() {
-                for ch in 0..channels {
-                    samples.push(buf.chan(ch)[frame]);
-                }
-            }
-        }
-        AudioBufferRef::S16(buf) => {
-            let scale = 1.0 / 32768.0;
-            for frame in 0..buf.frames() {
-                for ch in 0..channels {
-                    samples.push(buf.chan(ch)[frame] as f32 * scale);
-                }
-            }
-        }
-        AudioBufferRef::S32(buf) => {
-            let scale = 1.0 / 2147483648.0;
-            for frame in 0..buf.frames() {
-                for ch in 0..channels {
-                    samples.push(buf.chan(ch)[frame] as f32 * scale);
-                }
-            }
-        }
-        AudioBufferRef::U8(buf) => {
-            for frame in 0..buf.frames() {
-                for ch in 0..channels {
-                    samples.push((buf.chan(ch)[frame] as f32 - 128.0) / 128.0);
-                }
-            }
-        }
-        _ => {
-            // For other formats, try to get f32 representation
-            // This is a fallback
-        }
-    }
+fn append_samples(decoded: &GenericAudioBufferRef, samples: &mut Vec<f32>) {
+    let mut frame = Vec::new();
+    decoded.copy_to_vec_interleaved(&mut frame);
+    samples.extend_from_slice(&frame);
 }
 
 /// Write samples to a WAV file using symphonia

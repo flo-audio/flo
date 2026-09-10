@@ -1,6 +1,8 @@
 use serde_wasm_bindgen::to_value;
 use std::io::Cursor;
-use symphonia::core::codecs::CODEC_TYPE_NULL;
+use symphonia::core::codecs::audio::CODEC_ID_NULL_AUDIO;
+use symphonia::core::formats::probe::Hint;
+use symphonia::core::formats::FormatOptions;
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
 
@@ -75,28 +77,36 @@ pub fn get_audio_file_info(audio_bytes: &[u8]) -> Result<JsValue, JsValue> {
     let mss = MediaSourceStream::new(Box::new(cursor), Default::default());
 
     // Use the default probe which should have all formats registered
-    let probed = symphonia::default::get_probe()
-        .format(
-            &Default::default(),
+    let mut format = symphonia::default::get_probe()
+        .probe(
+            &Hint::default(),
             mss,
-            &Default::default(),
+            &FormatOptions::default(),
             &MetadataOptions::default(),
         )
         .map_err(|e| JsValue::from_str(&format!("Symphonia error: {}", e)))?;
 
-    let format = probed.format;
     let track = format
         .tracks()
         .iter()
-        .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
+        .find(|t| {
+            t.codec_params
+                .as_ref()
+                .and_then(|p| p.audio())
+                .is_some_and(|a| a.codec != CODEC_ID_NULL_AUDIO)
+        })
         .ok_or_else(|| JsValue::from_str("No audio track found"))?;
 
-    let codec_params = &track.codec_params;
+    let codec_params = track
+        .codec_params
+        .as_ref()
+        .and_then(|p| p.audio())
+        .ok_or_else(|| JsValue::from_str("No audio codec found"))?;
 
     // Basic fields
     let sample_rate = codec_params.sample_rate.unwrap_or(0);
     let channels = codec_params.channels.map(|c| c.count()).unwrap_or(0) as u8;
-    let duration_secs = codec_params
+    let duration_secs = track
         .n_frames
         .and_then(|frames| Some((frames as f64) / (sample_rate as f64)))
         .unwrap_or(0.0);
